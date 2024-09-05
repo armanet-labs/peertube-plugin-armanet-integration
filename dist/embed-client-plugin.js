@@ -2818,7 +2818,7 @@ var loadArmanetPxl = async () => {
 var loadContribAds = async (player) => {
   try {
     const { default: contrib } = await Promise.resolve().then(() => __toESM(require_videojs_ads_min()));
-    player.ads({ debug: true, allowVjsAutoplay: true });
+    player.ads({ debug: false, allowVjsAutoplay: true });
   } catch (error) {
     console.error("Error loading ads plugin:", error);
   }

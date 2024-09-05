@@ -1,12 +1,4 @@
 /* VAST PLUGIN STYLES */
-body.custom-css {
-    color: red;
-}
-
-.custom-css .header {
-    background-color: red;
-}
-
 .vjs-ad-playing.vjs-ad-playing .vjs-progress-control {
     pointer-events:none
 }
