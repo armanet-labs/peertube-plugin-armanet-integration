@@ -14,5 +14,5 @@ Local example:
 ```peertube-cli plugins install --path /absolute/path/to/peertube-plugin-armanet-integration```
 
 
-## Update Plugin before each build update
+## Update Plugin en Peertube after each new build
 ```peertube-cli plugins update --path /absolute/path/to/peertube-plugin-armanet-integration```
