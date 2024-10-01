@@ -2830,7 +2830,7 @@ var getRollsStatus = (pluginSettings) => {
     hasAtLeastOneRollEnabled: rolls.pre || rolls.mid || rolls.post
   };
 };
-var createVastSettings = (pluginSettings, Armanet2) => {
+var createVastSettings = (pluginSettings, Armanet2, channelName) => {
   const vastSettings = {
     skip: pluginSettings.skipTime,
     controlsEnabled: true,
@@ -2847,23 +2847,27 @@ var createVastSettings = (pluginSettings, Armanet2) => {
     vastSettings.displayRemainingTimeIcons = true;
     vastSettings.messages.remainingTime = pluginSettings.messageRemainingTime;
   }
+  const getArmanetVastUrl = (adUnit, roll, channel, skippable) => {
+    return Armanet2.getVastTag(adUnit, { roll, channel, skippable }) || "";
+  };
   const rollsStatus = getRollsStatus(pluginSettings);
+  const isSkippable = pluginSettings.skipTime > 0;
   if (rollsStatus.preroll) {
     vastSettings.schedule.push({
       offset: "pre",
-      url: Armanet2.getVastTag(pluginSettings.preroll.adUnit, "pre") || ""
+      url: getArmanetVastUrl(pluginSettings.preroll.adUnit, "pre", channelName, isSkippable)
     });
   }
   if (rollsStatus.midroll) {
     vastSettings.schedule.push({
       offset: pluginSettings.midroll.offset,
-      url: Armanet2.getVastTag(pluginSettings.midroll.adUnit, "mid") || ""
+      url: getArmanetVastUrl(pluginSettings.midroll.adUnit, "mid", channelName, isSkippable)
     });
   }
   if (rollsStatus.postroll) {
     vastSettings.schedule.push({
       offset: "post",
-      url: Armanet2.getVastTag(pluginSettings.postroll.adUnit, "post") || ""
+      url: getArmanetVastUrl(pluginSettings.postroll.adUnit, "post", channelName, isSkippable)
     });
   }
   return vastSettings;
@@ -2901,7 +2905,7 @@ async function initArmanetIntegration(registerHook, peertubeHelpers, baseStaticU
     });
     registerHook({
       target: "action:video-watch.player.loaded",
-      handler: async ({ videojs: videojs2, player }) => {
+      handler: async ({ videojs: videojs2, player, video }) => {
         if (rollsStatus.hasAtLeastOneRollEnabled) {
           window.videojs = videojs2;
           window.player = player;
@@ -2909,13 +2913,14 @@ async function initArmanetIntegration(registerHook, peertubeHelpers, baseStaticU
             const adId = e.vast.adId;
             const creativeAdId = e.vast.creativeAdId;
             const fileUrl = e.vast.mediaFiles[0].fileURL;
-            console.log("[EVEEENT] vast.adStart", { adId, creativeAdId, fileUrl });
           });
           loadCssStyles(baseStaticUrl);
           await loadContribAds(player);
           await loadArmanetPxl().then(() => {
+            var _a;
             if (typeof Armanet !== "undefined" && Armanet && typeof Armanet.getVastTag === "function") {
-              const vastSettings = createVastSettings(pluginSettings, Armanet);
+              const channelName = (_a = video == null ? void 0 : video.byVideoChannel) != null ? _a : "unknown";
+              const vastSettings = createVastSettings(pluginSettings, Armanet, channelName);
               buildVastPlayer(vastSettings, player);
             }
           }).catch((error) => {

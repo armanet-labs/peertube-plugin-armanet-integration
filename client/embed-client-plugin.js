@@ -18,7 +18,7 @@ function register ({ registerHook, peertubeHelpers }) {
 
   registerHook({
     target: "action:embed.player.loaded",
-    handler: async ({ videojs, player }) => {
+    handler: async ({ videojs, player, video }) => {
 
       window.videojs = videojs;
       window.player = player;
@@ -40,7 +40,8 @@ function register ({ registerHook, peertubeHelpers }) {
         try {
           await loadArmanetPxl();
           if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.getVastTag === 'function') {
-            const vastSettings = createVastSettings(pluginSettings, Armanet);
+            const channelName = video?.byVideoChannel ?? 'unknown';
+            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName);
             buildVastPlayer(vastSettings, player);
           }
         } catch (error) {

@@ -2836,7 +2836,7 @@ var getRollsStatus = (pluginSettings2) => {
     hasAtLeastOneRollEnabled: rolls.pre || rolls.mid || rolls.post
   };
 };
-var createVastSettings = (pluginSettings2, Armanet2) => {
+var createVastSettings = (pluginSettings2, Armanet2, channelName) => {
   const vastSettings = {
     skip: pluginSettings2.skipTime,
     controlsEnabled: true,
@@ -2853,23 +2853,27 @@ var createVastSettings = (pluginSettings2, Armanet2) => {
     vastSettings.displayRemainingTimeIcons = true;
     vastSettings.messages.remainingTime = pluginSettings2.messageRemainingTime;
   }
+  const getArmanetVastUrl = (adUnit, roll, channel, skippable) => {
+    return Armanet2.getVastTag(adUnit, { roll, channel, skippable }) || "";
+  };
   const rollsStatus2 = getRollsStatus(pluginSettings2);
+  const isSkippable = pluginSettings2.skipTime > 0;
   if (rollsStatus2.preroll) {
     vastSettings.schedule.push({
       offset: "pre",
-      url: Armanet2.getVastTag(pluginSettings2.preroll.adUnit, "pre") || ""
+      url: getArmanetVastUrl(pluginSettings2.preroll.adUnit, "pre", channelName, isSkippable)
     });
   }
   if (rollsStatus2.midroll) {
     vastSettings.schedule.push({
       offset: pluginSettings2.midroll.offset,
-      url: Armanet2.getVastTag(pluginSettings2.midroll.adUnit, "mid") || ""
+      url: getArmanetVastUrl(pluginSettings2.midroll.adUnit, "mid", channelName, isSkippable)
     });
   }
   if (rollsStatus2.postroll) {
     vastSettings.schedule.push({
       offset: "post",
-      url: Armanet2.getVastTag(pluginSettings2.postroll.adUnit, "post") || ""
+      url: getArmanetVastUrl(pluginSettings2.postroll.adUnit, "post", channelName, isSkippable)
     });
   }
   return vastSettings;
@@ -2891,7 +2895,8 @@ function register({ registerHook, peertubeHelpers }) {
   initializationPromise = initArmanetIntegrationEmbed(peertubeHelpers);
   registerHook({
     target: "action:embed.player.loaded",
-    handler: async ({ videojs: videojs2, player }) => {
+    handler: async ({ videojs: videojs2, player, video }) => {
+      var _a;
       window.videojs = videojs2;
       window.player = player;
       loadContribAds(player);
@@ -2907,7 +2912,8 @@ function register({ registerHook, peertubeHelpers }) {
         try {
           await loadArmanetPxl();
           if (typeof Armanet !== "undefined" && Armanet && typeof Armanet.getVastTag === "function") {
-            const vastSettings = createVastSettings(pluginSettings, Armanet);
+            const channelName = (_a = video == null ? void 0 : video.byVideoChannel) != null ? _a : "unknown";
+            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName);
             buildVastPlayer(vastSettings, player);
           }
         } catch (error) {
