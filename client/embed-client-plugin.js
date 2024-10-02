@@ -42,7 +42,8 @@ function register ({ registerHook, peertubeHelpers }) {
           await loadArmanetPxl();
           if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.getVastTag === 'function') {
             const channelName = video?.byVideoChannel ?? 'unknown';
-            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData);
+            const videoTags = video?.tags ?? [];
+            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData, videoTags);
             buildVastPlayer(vastSettings, player);
           }
         } catch (error) {
