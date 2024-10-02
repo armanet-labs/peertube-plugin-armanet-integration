@@ -12,6 +12,7 @@ import {
 let pluginSettings = null;
 let rollsStatus = null;
 let initializationPromise = null;
+let userData = null;
 
 function register ({ registerHook, peertubeHelpers }) {
   initializationPromise = initArmanetIntegrationEmbed(peertubeHelpers);
@@ -41,7 +42,7 @@ function register ({ registerHook, peertubeHelpers }) {
           await loadArmanetPxl();
           if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.getVastTag === 'function') {
             const channelName = video?.byVideoChannel ?? 'unknown';
-            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName);
+            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData);
             buildVastPlayer(vastSettings, player);
           }
         } catch (error) {

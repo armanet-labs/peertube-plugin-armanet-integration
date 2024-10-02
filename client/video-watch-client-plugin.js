@@ -30,6 +30,13 @@ async function initArmanetIntegration (registerHook, peertubeHelpers, baseStatic
 
       const rollsStatus = getRollsStatus(pluginSettings);
 
+      const getAuthUser = peertubeHelpers.getUser();
+
+      const userData = {
+        username: getAuthUser ? getAuthUser.username : '',
+        email: getAuthUser ? getAuthUser.email : ''
+      }
+
       registerHook({
         target: 'filter:internal.video-watch.player.load-options.result',
         handler: (result) => {
@@ -60,7 +67,7 @@ async function initArmanetIntegration (registerHook, peertubeHelpers, baseStatic
             await loadArmanetPxl().then(() => {
               if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.getVastTag === 'function') {
                 const channelName = video?.byVideoChannel ?? 'unknown';
-                const vastSettings = createVastSettings(pluginSettings, Armanet, channelName);
+                const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData);
                 buildVastPlayer(vastSettings, player);
               }
             }).catch(error => {
