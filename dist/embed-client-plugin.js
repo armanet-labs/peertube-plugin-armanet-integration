@@ -2836,7 +2836,7 @@ var getRollsStatus = (pluginSettings2) => {
     hasAtLeastOneRollEnabled: rolls.pre || rolls.mid || rolls.post
   };
 };
-var createVastSettings = (pluginSettings2, Armanet2, channelName, userData2) => {
+var createVastSettings = (pluginSettings2, Armanet2, channelName, userData2, videoTags) => {
   const vastSettings = {
     skip: pluginSettings2.skipTime,
     controlsEnabled: true,
@@ -2853,10 +2853,13 @@ var createVastSettings = (pluginSettings2, Armanet2, channelName, userData2) => 
     vastSettings.displayRemainingTimeIcons = true;
     vastSettings.messages.remainingTime = pluginSettings2.messageRemainingTime;
   }
-  const getArmanetVastUrl = (adUnit, roll, channel, skippable, viewer2) => {
+  const getArmanetVastUrl = (adUnit, roll, channel, skippable, viewer2, videoTags2) => {
     const armanetParams = { roll, channel, skippable };
     if (viewer2[0] && viewer2[1]) {
       armanetParams.viewer = viewer2;
+    }
+    if (videoTags2.length > 0) {
+      armanetParams.tags = videoTags2;
     }
     return Armanet2.getVastTag(adUnit, armanetParams) || "";
   };
@@ -2866,19 +2869,19 @@ var createVastSettings = (pluginSettings2, Armanet2, channelName, userData2) => 
   if (rollsStatus2.preroll) {
     vastSettings.schedule.push({
       offset: "pre",
-      url: getArmanetVastUrl(pluginSettings2.preroll.adUnit, "pre", channelName, isSkippable, viewer)
+      url: getArmanetVastUrl(pluginSettings2.preroll.adUnit, "pre", channelName, isSkippable, viewer, videoTags)
     });
   }
   if (rollsStatus2.midroll) {
     vastSettings.schedule.push({
       offset: pluginSettings2.midroll.offset,
-      url: getArmanetVastUrl(pluginSettings2.midroll.adUnit, "mid", channelName, isSkippable, viewer)
+      url: getArmanetVastUrl(pluginSettings2.midroll.adUnit, "mid", channelName, isSkippable, viewer, videoTags)
     });
   }
   if (rollsStatus2.postroll) {
     vastSettings.schedule.push({
       offset: "post",
-      url: getArmanetVastUrl(pluginSettings2.postroll.adUnit, "post", channelName, isSkippable, viewer)
+      url: getArmanetVastUrl(pluginSettings2.postroll.adUnit, "post", channelName, isSkippable, viewer, videoTags)
     });
   }
   return vastSettings;
@@ -2902,7 +2905,7 @@ function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: "action:embed.player.loaded",
     handler: async ({ videojs: videojs2, player, video }) => {
-      var _a;
+      var _a, _b;
       window.videojs = videojs2;
       window.player = player;
       loadContribAds(player);
@@ -2919,7 +2922,8 @@ function register({ registerHook, peertubeHelpers }) {
           await loadArmanetPxl();
           if (typeof Armanet !== "undefined" && Armanet && typeof Armanet.getVastTag === "function") {
             const channelName = (_a = video == null ? void 0 : video.byVideoChannel) != null ? _a : "unknown";
-            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData);
+            const videoTags = (_b = video == null ? void 0 : video.tags) != null ? _b : [];
+            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData, videoTags);
             buildVastPlayer(vastSettings, player);
           }
         } catch (error) {
