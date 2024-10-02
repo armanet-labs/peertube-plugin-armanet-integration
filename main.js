@@ -86,7 +86,7 @@ async function register ({
     name: 'armanet-skip-time',
     label: 'Skip time',
     type: 'input',
-    descriptionHTML: 'Set the minimum time spent (in seconds) to allow skip ads',
+    descriptionHTML: 'Set the minimum time spent (in seconds) to allow skip ads. 0 (zero) value will disable skip function',
     private: false,
     default: '8',
   })

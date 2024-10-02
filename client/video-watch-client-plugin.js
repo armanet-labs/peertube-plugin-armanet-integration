@@ -30,6 +30,13 @@ async function initArmanetIntegration (registerHook, peertubeHelpers, baseStatic
 
       const rollsStatus = getRollsStatus(pluginSettings);
 
+      const getAuthUser = peertubeHelpers.getUser();
+
+      const userData = {
+        username: getAuthUser ? getAuthUser.username : '',
+        email: getAuthUser ? getAuthUser.email : ''
+      }
+
       registerHook({
         target: 'filter:internal.video-watch.player.load-options.result',
         handler: (result) => {
@@ -42,7 +49,7 @@ async function initArmanetIntegration (registerHook, peertubeHelpers, baseStatic
 
       registerHook({
         target: 'action:video-watch.player.loaded',
-        handler: async ({ videojs, player }) => {
+        handler: async ({ videojs, player, video }) => {
           if (rollsStatus.hasAtLeastOneRollEnabled) {
             window.videojs = videojs;
             window.player = player;
@@ -51,7 +58,7 @@ async function initArmanetIntegration (registerHook, peertubeHelpers, baseStatic
               const adId = e.vast.adId;
               const creativeAdId = e.vast.creativeAdId;
               const fileUrl = e.vast.mediaFiles[0].fileURL;
-              console.log('[EVEEENT] vast.adStart', {adId, creativeAdId, fileUrl});
+              // console.log('[EVENT] vast.adStart', {adId, creativeAdId, fileUrl});
             });
 
             loadCssStyles(baseStaticUrl);
@@ -59,7 +66,8 @@ async function initArmanetIntegration (registerHook, peertubeHelpers, baseStatic
 
             await loadArmanetPxl().then(() => {
               if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.getVastTag === 'function') {
-                const vastSettings = createVastSettings(pluginSettings, Armanet);
+                const channelName = video?.byVideoChannel ?? 'unknown';
+                const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData);
                 buildVastPlayer(vastSettings, player);
               }
             }).catch(error => {

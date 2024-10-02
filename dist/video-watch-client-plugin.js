@@ -2830,7 +2830,7 @@ var getRollsStatus = (pluginSettings) => {
     hasAtLeastOneRollEnabled: rolls.pre || rolls.mid || rolls.post
   };
 };
-var createVastSettings = (pluginSettings, Armanet2) => {
+var createVastSettings = (pluginSettings, Armanet2, channelName, userData) => {
   const vastSettings = {
     skip: pluginSettings.skipTime,
     controlsEnabled: true,
@@ -2847,23 +2847,32 @@ var createVastSettings = (pluginSettings, Armanet2) => {
     vastSettings.displayRemainingTimeIcons = true;
     vastSettings.messages.remainingTime = pluginSettings.messageRemainingTime;
   }
+  const getArmanetVastUrl = (adUnit, roll, channel, skippable, viewer2) => {
+    const armanetParams = { roll, channel, skippable };
+    if (viewer2[0] && viewer2[1]) {
+      armanetParams.viewer = viewer2;
+    }
+    return Armanet2.getVastTag(adUnit, armanetParams) || "";
+  };
   const rollsStatus = getRollsStatus(pluginSettings);
+  const isSkippable = pluginSettings.skipTime > 0;
+  const viewer = [userData == null ? void 0 : userData.username, userData == null ? void 0 : userData.email];
   if (rollsStatus.preroll) {
     vastSettings.schedule.push({
       offset: "pre",
-      url: Armanet2.getVastTag(pluginSettings.preroll.adUnit, "pre") || ""
+      url: getArmanetVastUrl(pluginSettings.preroll.adUnit, "pre", channelName, isSkippable, viewer)
     });
   }
   if (rollsStatus.midroll) {
     vastSettings.schedule.push({
       offset: pluginSettings.midroll.offset,
-      url: Armanet2.getVastTag(pluginSettings.midroll.adUnit, "mid") || ""
+      url: getArmanetVastUrl(pluginSettings.midroll.adUnit, "mid", channelName, isSkippable, viewer)
     });
   }
   if (rollsStatus.postroll) {
     vastSettings.schedule.push({
       offset: "post",
-      url: Armanet2.getVastTag(pluginSettings.postroll.adUnit, "post") || ""
+      url: getArmanetVastUrl(pluginSettings.postroll.adUnit, "post", channelName, isSkippable, viewer)
     });
   }
   return vastSettings;
@@ -2890,6 +2899,11 @@ async function initArmanetIntegration(registerHook, peertubeHelpers, baseStaticU
     }
     const pluginSettings = settings(s);
     const rollsStatus = getRollsStatus(pluginSettings);
+    const getAuthUser = peertubeHelpers.getUser();
+    const userData = {
+      username: getAuthUser ? getAuthUser.username : "",
+      email: getAuthUser ? getAuthUser.email : ""
+    };
     registerHook({
       target: "filter:internal.video-watch.player.load-options.result",
       handler: (result) => {
@@ -2901,7 +2915,7 @@ async function initArmanetIntegration(registerHook, peertubeHelpers, baseStaticU
     });
     registerHook({
       target: "action:video-watch.player.loaded",
-      handler: async ({ videojs: videojs2, player }) => {
+      handler: async ({ videojs: videojs2, player, video }) => {
         if (rollsStatus.hasAtLeastOneRollEnabled) {
           window.videojs = videojs2;
           window.player = player;
@@ -2909,13 +2923,14 @@ async function initArmanetIntegration(registerHook, peertubeHelpers, baseStaticU
             const adId = e.vast.adId;
             const creativeAdId = e.vast.creativeAdId;
             const fileUrl = e.vast.mediaFiles[0].fileURL;
-            console.log("[EVEEENT] vast.adStart", { adId, creativeAdId, fileUrl });
           });
           loadCssStyles(baseStaticUrl);
           await loadContribAds(player);
           await loadArmanetPxl().then(() => {
+            var _a;
             if (typeof Armanet !== "undefined" && Armanet && typeof Armanet.getVastTag === "function") {
-              const vastSettings = createVastSettings(pluginSettings, Armanet);
+              const channelName = (_a = video == null ? void 0 : video.byVideoChannel) != null ? _a : "unknown";
+              const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData);
               buildVastPlayer(vastSettings, player);
             }
           }).catch((error) => {
