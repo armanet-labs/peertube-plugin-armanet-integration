@@ -15,67 +15,62 @@ function register ({ registerHook, peertubeHelpers }) {
     .catch(err => console.error('[ARMANET INTEGRATION PLUGIN] Cannot initialize plugin', err))
 }
 
-export { register }
-
 async function initArmanetIntegration (registerHook, peertubeHelpers, baseStaticUrl) {
-  return peertubeHelpers.getSettings()
-    .then(async (s) => {
+  const s = await peertubeHelpers.getSettings();
+  if (!s) {
+    console.error('Could not find settings.')
+    return
+  }
 
-      if (!s) {
-        console.error('Could not find settings.')
-        return
+  const pluginSettings = settings(s);
+  const rollsStatus = getRollsStatus(pluginSettings);
+  const authUser = await peertubeHelpers.getUser();
+  const userData = {
+    username: authUser?.username ?? '',
+    email: authUser?.email ?? ''
+  }
+
+  registerHook({
+    target: 'filter:internal.video-watch.player.load-options.result',
+    handler: (result) => {
+      if (rollsStatus.hasAtLeastOneRollEnabled) {
+        result.autoplay = false;
       }
 
-      const pluginSettings = settings(s);
+      return result;
+    }
+  })
 
-      const rollsStatus = getRollsStatus(pluginSettings);
+  registerHook({
+    target: 'action:video-watch.player.loaded',
+    handler: async ({ videojs, player, video }) => {
+      if (!rollsStatus.hasAtLeastOneRollEnabled) return;
 
-      const getAuthUser = peertubeHelpers.getUser();
+      window.videojs = videojs;
+      window.player = player;
 
-      const userData = {
-        username: getAuthUser ? getAuthUser.username : '',
-        email: getAuthUser ? getAuthUser.email : ''
+      loadCssStyles(baseStaticUrl);
+
+      await loadContribAds(player);
+
+      try {
+        await loadArmanetPxl();
+
+        if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.getVastTag === 'function') {
+          const channelName = video?.channel?.name ?? 'unknown';
+          const channelAdUnit = video?.pluginData?.armanet?.channel_adUnit?.uuid ?? null;
+          const videoTags = video?.tags ?? [];
+
+          const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, channelAdUnit, userData, videoTags);
+          await buildVastPlayer(vastSettings, player);
+        } else {
+          console.warn('[ARMANET INTEGRATION PLUGIN] Armanet or Armanet.getVastTag is not available');
+        }
+      } catch (error) {
+        console.error('[ARMANET INTEGRATION PLUGIN] Error in Armanet integration:', error);
       }
-
-      registerHook({
-        target: 'filter:internal.video-watch.player.load-options.result',
-        handler: (result) => {
-          if (rollsStatus.hasAtLeastOneRollEnabled) {
-            result.autoplay = false;
-          }
-          return result;
-        }
-      })
-
-      registerHook({
-        target: 'action:video-watch.player.loaded',
-        handler: async ({ videojs, player, video }) => {
-          if (rollsStatus.hasAtLeastOneRollEnabled) {
-            window.videojs = videojs;
-            window.player = player;
-
-            player.on('vast.adStart', (e) => {
-              const adId = e.vast.adId;
-              const creativeAdId = e.vast.creativeAdId;
-              const fileUrl = e.vast.mediaFiles[0].fileURL;
-              // console.log('[EVENT] vast.adStart', {adId, creativeAdId, fileUrl});
-            });
-
-            loadCssStyles(baseStaticUrl);
-            await loadContribAds(player);
-
-            await loadArmanetPxl().then(() => {
-              if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.getVastTag === 'function') {
-                const channelName = video?.byVideoChannel ?? 'unknown';
-                const videoTags = video?.tags ?? [];
-                const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData, videoTags);
-                buildVastPlayer(vastSettings, player);
-              }
-            }).catch(error => {
-              console.error('[ARMANET INTEGRATION PLUGIN] loadArmanetPxl() error', error);
-            });
-          }
-        }
-      });
-    })
+    }
+  });
 }
+
+export { register }
