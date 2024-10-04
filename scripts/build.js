@@ -20,13 +20,11 @@ const configs = clientFiles.map(f => ({
     '.css': 'css'
   },
   platform: 'browser',
-  //sourcemap: true,
   plugins: [
     externalGlobalPlugin({
       'video.js': 'window.videojs'
     })
   ],
-  //external: ['video.js'],
 }))
 
 const promises = configs.map(c => esbuild.build(c))

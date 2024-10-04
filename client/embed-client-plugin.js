@@ -20,7 +20,6 @@ function register ({ registerHook, peertubeHelpers }) {
   registerHook({
     target: "action:embed.player.loaded",
     handler: async ({ videojs, player, video }) => {
-
       window.videojs = videojs;
       window.player = player;
 
@@ -40,14 +39,20 @@ function register ({ registerHook, peertubeHelpers }) {
 
         try {
           await loadArmanetPxl();
+
           if (typeof Armanet !== 'undefined' && Armanet && typeof Armanet.getVastTag === 'function') {
-            const channelName = video?.byVideoChannel ?? 'unknown';
+            const channelName = video?.channel?.name ?? 'unknown';
+            const channelAdUnit = video?.pluginData?.armanet?.channel_adUnit?.uuid ?? null;
             const videoTags = video?.tags ?? [];
-            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData, videoTags);
-            buildVastPlayer(vastSettings, player);
+
+            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, channelAdUnit, userData, videoTags);
+
+            await buildVastPlayer(vastSettings, player);
+          } else {
+            console.warn('[ARMANET INTEGRATION PLUGIN] Armanet or Armanet.getVastTag is not available');
           }
         } catch (error) {
-          console.error('[ARMANET INTEGRATION PLUGIN EMBED] loadArmanetPxl() error', error);
+          console.error('[ARMANET INTEGRATION PLUGIN] Error in Armanet integration:', error);
         }
       }
     }

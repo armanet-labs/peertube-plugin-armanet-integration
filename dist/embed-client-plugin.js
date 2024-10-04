@@ -1,9 +1,26 @@
 var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -2805,11 +2822,11 @@ var loadCssStyles = (baseUrl) => {
   link.href = `${baseUrl}/styles/style.css`;
   document.head.appendChild(link);
 };
-var loadArmanetPxl = async () => {
-  const script = document.createElement("script");
-  script.src = ARMANET_JS_URL;
-  script.defer = true;
-  await new Promise((resolve, reject) => {
+var loadArmanetPxl = () => {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = ARMANET_JS_URL;
+    script.defer = true;
     script.onload = resolve;
     script.onerror = reject;
     document.head.appendChild(script);
@@ -2824,66 +2841,61 @@ var loadContribAds = async (player) => {
   }
 };
 var getRollsStatus = (pluginSettings2) => {
+  const isRollEnabled = (roll) => roll.adUnit && roll.enabled;
   const rolls = {
-    pre: pluginSettings2.preroll.adUnit && pluginSettings2.preroll.enabled,
-    mid: pluginSettings2.midroll.adUnit && pluginSettings2.midroll.enabled,
-    post: pluginSettings2.postroll.adUnit && pluginSettings2.postroll.enabled
+    preroll: isRollEnabled(pluginSettings2.preroll),
+    midroll: isRollEnabled(pluginSettings2.midroll),
+    postroll: isRollEnabled(pluginSettings2.postroll)
   };
-  return {
-    preroll: rolls.pre,
-    midroll: rolls.mid,
-    postroll: rolls.post,
-    hasAtLeastOneRollEnabled: rolls.pre || rolls.mid || rolls.post
-  };
+  return __spreadProps(__spreadValues({}, rolls), {
+    hasAtLeastOneRollEnabled: Object.values(rolls).some(Boolean)
+  });
 };
-var createVastSettings = (pluginSettings2, Armanet2, channelName, userData2, videoTags) => {
+var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit, userData2, videoTags) => {
+  const { skipTime, messageSkip, messageSkipCountdown, messageRemainingTime } = pluginSettings2;
   const vastSettings = {
-    skip: pluginSettings2.skipTime,
+    skip: skipTime,
     controlsEnabled: true,
     seekEnabled: true,
     withCredentials: false,
     messages: {
-      skip: pluginSettings2.messageSkip,
-      skipCountdown: pluginSettings2.messageSkipCountdown
+      skip: messageSkip,
+      skipCountdown: messageSkipCountdown
     },
     schedule: []
   };
-  if (pluginSettings2.messageRemainingTime.includes("{seconds}")) {
-    vastSettings.displayRemainingTime = true;
-    vastSettings.displayRemainingTimeIcons = true;
-    vastSettings.messages.remainingTime = pluginSettings2.messageRemainingTime;
+  if (messageRemainingTime == null ? void 0 : messageRemainingTime.includes("{seconds}")) {
+    Object.assign(vastSettings, {
+      displayRemainingTime: true,
+      displayRemainingTimeIcons: true,
+      messages: __spreadProps(__spreadValues({}, vastSettings.messages), { remainingTime: messageRemainingTime })
+    });
   }
-  const getArmanetVastUrl = (adUnit, roll, channel, skippable, viewer2, videoTags2) => {
-    const armanetParams = { roll, channel, skippable };
-    if (viewer2[0] && viewer2[1]) {
-      armanetParams.viewer = viewer2;
-    }
-    if (videoTags2.length > 0) {
-      armanetParams.tags = videoTags2;
-    }
+  const getArmanetVastUrl = (adUnit, roll) => {
+    const armanetParams = __spreadValues(__spreadValues({
+      roll,
+      channel: channelName,
+      skippable: skipTime > 0
+    }, (userData2 == null ? void 0 : userData2.username) && (userData2 == null ? void 0 : userData2.email) && { viewer: [userData2.username, userData2.email] }), videoTags.length > 0 && { tags: videoTags });
     return Armanet2.getVastTag(adUnit, armanetParams) || "";
   };
   const rollsStatus2 = getRollsStatus(pluginSettings2);
-  const isSkippable = pluginSettings2.skipTime > 0;
-  const viewer = [userData2 == null ? void 0 : userData2.username, userData2 == null ? void 0 : userData2.email];
-  if (rollsStatus2.preroll) {
-    vastSettings.schedule.push({
-      offset: "pre",
-      url: getArmanetVastUrl(pluginSettings2.preroll.adUnit, "pre", channelName, isSkippable, viewer, videoTags)
-    });
-  }
-  if (rollsStatus2.midroll) {
-    vastSettings.schedule.push({
-      offset: pluginSettings2.midroll.offset,
-      url: getArmanetVastUrl(pluginSettings2.midroll.adUnit, "mid", channelName, isSkippable, viewer, videoTags)
-    });
-  }
-  if (rollsStatus2.postroll) {
-    vastSettings.schedule.push({
-      offset: "post",
-      url: getArmanetVastUrl(pluginSettings2.postroll.adUnit, "post", channelName, isSkippable, viewer, videoTags)
-    });
-  }
+  const rollConfigs = {
+    preroll: { offset: "pre", roll: "pre" },
+    midroll: { offset: pluginSettings2.midroll.offset, roll: "mid" },
+    postroll: { offset: "post", roll: "post" }
+  };
+  Object.entries(rollConfigs).forEach(([rollType, { offset, roll }]) => {
+    if (rollsStatus2[rollType]) {
+      const rollAdUnit = channelAdUnit || pluginSettings2[rollType].adUnit;
+      if (rollAdUnit && offset) {
+        vastSettings.schedule.push({
+          offset,
+          url: getArmanetVastUrl(rollAdUnit, roll)
+        });
+      }
+    }
+  });
   return vastSettings;
 };
 var buildVastPlayer = async (vastSettings, player) => {
@@ -2905,7 +2917,7 @@ function register({ registerHook, peertubeHelpers }) {
   registerHook({
     target: "action:embed.player.loaded",
     handler: async ({ videojs: videojs2, player, video }) => {
-      var _a, _b;
+      var _a, _b, _c, _d, _e, _f, _g;
       window.videojs = videojs2;
       window.player = player;
       loadContribAds(player);
@@ -2921,13 +2933,16 @@ function register({ registerHook, peertubeHelpers }) {
         try {
           await loadArmanetPxl();
           if (typeof Armanet !== "undefined" && Armanet && typeof Armanet.getVastTag === "function") {
-            const channelName = (_a = video == null ? void 0 : video.byVideoChannel) != null ? _a : "unknown";
-            const videoTags = (_b = video == null ? void 0 : video.tags) != null ? _b : [];
-            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, userData, videoTags);
-            buildVastPlayer(vastSettings, player);
+            const channelName = (_b = (_a = video == null ? void 0 : video.channel) == null ? void 0 : _a.name) != null ? _b : "unknown";
+            const channelAdUnit = (_f = (_e = (_d = (_c = video == null ? void 0 : video.pluginData) == null ? void 0 : _c.armanet) == null ? void 0 : _d.channel_adUnit) == null ? void 0 : _e.uuid) != null ? _f : null;
+            const videoTags = (_g = video == null ? void 0 : video.tags) != null ? _g : [];
+            const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, channelAdUnit, userData, videoTags);
+            await buildVastPlayer(vastSettings, player);
+          } else {
+            console.warn("[ARMANET INTEGRATION PLUGIN] Armanet or Armanet.getVastTag is not available");
           }
         } catch (error) {
-          console.error("[ARMANET INTEGRATION PLUGIN EMBED] loadArmanetPxl() error", error);
+          console.error("[ARMANET INTEGRATION PLUGIN] Error in Armanet integration:", error);
         }
       }
     }
