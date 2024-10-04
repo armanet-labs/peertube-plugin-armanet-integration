@@ -1,6 +1,6 @@
 const pluginSettings = require('./lib/pluginSettings');
 const adUnitStoragePrefix = 'ch_';
-const armanetAdUnitUrl = 'https://portal.armanet.us/api/dynamic-ad-unit';
+const armanetAdUnitUrl = 'https://api.armanet.us/dynamic-ad-unit';
 
 async function register ({
   registerHook,
