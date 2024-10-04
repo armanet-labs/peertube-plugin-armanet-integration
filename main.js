@@ -97,6 +97,41 @@ async function register ({
       }
     },
   });
+
+  // Implement once the API is available
+  // registerHook({
+  //   target: 'action:api.video-channel.deleted',
+  //   handler: async ({ videoChannel }) => {
+  //     try {
+  //       const channelName = videoChannel?.Actor?.preferredUsername;
+  //       const data = { name: channelName };
+
+  //       const channelData = await storageManager.getData(`${adUnitStoragePrefix}${channelName}`)
+
+  //       if (!channelData) {
+  //         return
+  //       }
+
+  //       const response = await fetch(armanetAdUnitUrl+'/'+channelData.uuid, {
+  //         method: 'DELETE',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //           'Authorization': `Bearer ${apiKey}`,
+  //         },
+  //         mode: 'cors',
+  //         body: JSON.stringify(data),
+  //       });
+
+  //       if (response.ok) {
+  //         console.error('[ARMANET INTEGRATION PLUGIN] Ad unit deleted:', response.status);
+  //       } else {
+  //         console.error('[ARMANET INTEGRATION PLUGIN] Failed to send channel data. Status:', response.status);
+  //       }
+  //     } catch (error) {
+  //       console.error('[ARMANET INTEGRATION PLUGIN] Error while sending channel data:', error);
+  //     }
+  //   },
+  // });
 }
 
 async function unregister () {
