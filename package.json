@@ -38,8 +38,7 @@
   },
   "library": "./main.js",
   "staticDirs": {
-    "scripts": "public/scripts",
-    "styles": "public/styles"
+    "scripts": "public/scripts"
   },
   "files": [
     "dist",

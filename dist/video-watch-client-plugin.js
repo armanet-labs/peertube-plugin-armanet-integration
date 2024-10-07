@@ -2787,7 +2787,7 @@ var DEFAULT_SKIP_COUNTDOWN_MESSAGE = "Skip in {seconds}...";
 var DEFAULT_SKIP_MESSAGE = "Skip";
 var ARMANET_JS_URL = "https://assets.armanet.us/armanet-pxl.js";
 var settings = (s) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i;
   return {
     preroll: {
       enabled: (_a = s["armanet-preroll-enabled"]) != null ? _a : false,
@@ -2803,18 +2803,12 @@ var settings = (s) => {
       adUnit: s["armanet-postroll-adunit"]
     },
     embededEnabled: (_e = s["armanet-embeded-enabled"]) != null ? _e : true,
-    skipTime: (_f = s["armanet-skip-time"]) != null ? _f : DEFAULT_SKIP_TIME,
-    messageSkipCountdown: (_g = s["armanet-message-skip-countdown"]) != null ? _g : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
-    messageSkip: (_h = s["armanet-message-skip"]) != null ? _h : DEFAULT_SKIP_MESSAGE,
+    controlsEnabled: (_f = s["armanet-player-controls-enabled"]) != null ? _f : true,
+    skipTime: (_g = s["armanet-skip-time"]) != null ? _g : DEFAULT_SKIP_TIME,
+    messageSkipCountdown: (_h = s["armanet-message-skip-countdown"]) != null ? _h : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
+    messageSkip: (_i = s["armanet-message-skip"]) != null ? _i : DEFAULT_SKIP_MESSAGE,
     messageRemainingTime: s["armanet-message-remainingTime"]
   };
-};
-var loadCssStyles = (baseUrl) => {
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.type = "text/css";
-  link.href = `${baseUrl}/styles/style.css`;
-  document.head.appendChild(link);
 };
 var loadArmanetPxl = () => {
   return new Promise((resolve, reject) => {
@@ -2846,11 +2840,11 @@ var getRollsStatus = (pluginSettings) => {
   });
 };
 var createVastSettings = (pluginSettings, Armanet2, channelName, channelAdUnit, userData, videoTags) => {
-  const { skipTime, messageSkip, messageSkipCountdown, messageRemainingTime } = pluginSettings;
+  const { skipTime, controlsEnabled, messageSkip, messageSkipCountdown, messageRemainingTime } = pluginSettings;
   const vastSettings = {
     skip: skipTime,
-    controlsEnabled: true,
-    seekEnabled: true,
+    controlsEnabled,
+    seekEnabled: controlsEnabled,
     withCredentials: false,
     messages: {
       skip: messageSkip,
@@ -2937,7 +2931,6 @@ async function initArmanetIntegration(registerHook, peertubeHelpers, baseStaticU
         return;
       window.videojs = videojs2;
       window.player = player;
-      loadCssStyles(baseStaticUrl);
       await loadContribAds(player);
       try {
         await loadArmanetPxl();

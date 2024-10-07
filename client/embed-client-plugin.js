@@ -1,8 +1,6 @@
 import {
   settings,
-  loadCssStyles,
   loadArmanetPxl,
-  getPluginStaticPath,
   loadContribAds,
   getRollsStatus,
   createVastSettings,
@@ -34,9 +32,6 @@ function register ({ registerHook, peertubeHelpers }) {
       }
 
       if (rollsStatus.hasAtLeastOneRollEnabled) {
-        const baseStaticUrl = getPluginStaticPath();
-        loadCssStyles(baseStaticUrl);
-
         try {
           await loadArmanetPxl();
 

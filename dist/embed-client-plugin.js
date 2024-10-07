@@ -2781,19 +2781,13 @@ var require_videojsx_vast = __commonJS({
   }
 });
 
-// package.json
-var version = "1.0.0";
-
 // lib/shared.js
-var PLUGIN_NAME = "armanet-integration";
 var DEFAULT_SKIP_TIME = 8;
 var DEFAULT_SKIP_COUNTDOWN_MESSAGE = "Skip in {seconds}...";
 var DEFAULT_SKIP_MESSAGE = "Skip";
 var ARMANET_JS_URL = "https://assets.armanet.us/armanet-pxl.js";
-var getPluginVersion = () => version;
-var getPluginStaticPath = () => `/plugins/${PLUGIN_NAME}/${getPluginVersion()}/static`;
 var settings = (s) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i;
   return {
     preroll: {
       enabled: (_a = s["armanet-preroll-enabled"]) != null ? _a : false,
@@ -2809,18 +2803,12 @@ var settings = (s) => {
       adUnit: s["armanet-postroll-adunit"]
     },
     embededEnabled: (_e = s["armanet-embeded-enabled"]) != null ? _e : true,
-    skipTime: (_f = s["armanet-skip-time"]) != null ? _f : DEFAULT_SKIP_TIME,
-    messageSkipCountdown: (_g = s["armanet-message-skip-countdown"]) != null ? _g : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
-    messageSkip: (_h = s["armanet-message-skip"]) != null ? _h : DEFAULT_SKIP_MESSAGE,
+    controlsEnabled: (_f = s["armanet-player-controls-enabled"]) != null ? _f : true,
+    skipTime: (_g = s["armanet-skip-time"]) != null ? _g : DEFAULT_SKIP_TIME,
+    messageSkipCountdown: (_h = s["armanet-message-skip-countdown"]) != null ? _h : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
+    messageSkip: (_i = s["armanet-message-skip"]) != null ? _i : DEFAULT_SKIP_MESSAGE,
     messageRemainingTime: s["armanet-message-remainingTime"]
   };
-};
-var loadCssStyles = (baseUrl) => {
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.type = "text/css";
-  link.href = `${baseUrl}/styles/style.css`;
-  document.head.appendChild(link);
 };
 var loadArmanetPxl = () => {
   return new Promise((resolve, reject) => {
@@ -2852,11 +2840,11 @@ var getRollsStatus = (pluginSettings2) => {
   });
 };
 var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit, userData2, videoTags) => {
-  const { skipTime, messageSkip, messageSkipCountdown, messageRemainingTime } = pluginSettings2;
+  const { skipTime, controlsEnabled, messageSkip, messageSkipCountdown, messageRemainingTime } = pluginSettings2;
   const vastSettings = {
     skip: skipTime,
-    controlsEnabled: true,
-    seekEnabled: true,
+    controlsEnabled,
+    seekEnabled: controlsEnabled,
     withCredentials: false,
     messages: {
       skip: messageSkip,
@@ -2928,8 +2916,6 @@ function register({ registerHook, peertubeHelpers }) {
         return;
       }
       if (rollsStatus.hasAtLeastOneRollEnabled) {
-        const baseStaticUrl = getPluginStaticPath();
-        loadCssStyles(baseStaticUrl);
         try {
           await loadArmanetPxl();
           if (typeof Armanet !== "undefined" && Armanet && typeof Armanet.getVastTag === "function") {
