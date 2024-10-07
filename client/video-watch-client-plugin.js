@@ -1,6 +1,5 @@
 import {
   settings,
-  loadCssStyles,
   loadArmanetPxl,
   loadContribAds,
   getRollsStatus,
@@ -48,8 +47,6 @@ async function initArmanetIntegration (registerHook, peertubeHelpers, baseStatic
 
       window.videojs = videojs;
       window.player = player;
-
-      loadCssStyles(baseStaticUrl);
 
       await loadContribAds(player);
 
