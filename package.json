@@ -14,7 +14,8 @@
   ],
   "scripts": {
     "prepare": "npm run build",
-    "build": "node ./scripts/build.js"
+    "build": "node ./scripts/build.js",
+    "format": "prettier --write --cache --ignore-unknown --single-quote client/ lib/ scripts/ main.js"
   },
   "clientScripts": [
     {
@@ -44,12 +45,15 @@
     "dist",
     "assets",
     "public",
+    "languages",
+    "lib",
     "main.js"
   ],
   "translations": {},
   "devDependencies": {
     "esbuild": "^0.14.36",
     "esbuild-plugin-external-global": "^1.0.1",
-    "global": "^4.4.0"
+    "global": "^4.4.0",
+    "prettier": "3.3.3"
   }
 }

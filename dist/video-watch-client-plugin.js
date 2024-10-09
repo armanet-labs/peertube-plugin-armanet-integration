@@ -2840,7 +2840,13 @@ var getRollsStatus = (pluginSettings) => {
   });
 };
 var createVastSettings = (pluginSettings, Armanet2, channelName, channelAdUnit, userData, videoTags) => {
-  const { skipTime, controlsEnabled, messageSkip, messageSkipCountdown, messageRemainingTime } = pluginSettings;
+  const {
+    skipTime,
+    controlsEnabled,
+    messageSkip,
+    messageSkipCountdown,
+    messageRemainingTime
+  } = pluginSettings;
   const vastSettings = {
     skip: skipTime,
     controlsEnabled,
@@ -2856,7 +2862,9 @@ var createVastSettings = (pluginSettings, Armanet2, channelName, channelAdUnit, 
     Object.assign(vastSettings, {
       displayRemainingTime: true,
       displayRemainingTimeIcons: true,
-      messages: __spreadProps(__spreadValues({}, vastSettings.messages), { remainingTime: messageRemainingTime })
+      messages: __spreadProps(__spreadValues({}, vastSettings.messages), {
+        remainingTime: messageRemainingTime
+      })
     });
   }
   const getArmanetVastUrl = (adUnit, roll) => {
@@ -2897,10 +2905,9 @@ var buildVastPlayer = async (vastSettings, player) => {
 
 // client/video-watch-client-plugin.js
 function register({ registerHook, peertubeHelpers }) {
-  const baseStaticUrl = peertubeHelpers.getBaseStaticRoute();
-  initArmanetIntegration(registerHook, peertubeHelpers, baseStaticUrl).catch((err) => console.error("[ARMANET INTEGRATION PLUGIN] Cannot initialize plugin", err));
+  initArmanetIntegration(registerHook, peertubeHelpers).catch((err) => console.error("[ARMANET INTEGRATION PLUGIN] Cannot initialize plugin", err));
 }
-async function initArmanetIntegration(registerHook, peertubeHelpers, baseStaticUrl) {
+async function initArmanetIntegration(registerHook, peertubeHelpers) {
   var _a, _b;
   const s = await peertubeHelpers.getSettings();
   if (!s) {
@@ -2941,7 +2948,7 @@ async function initArmanetIntegration(registerHook, peertubeHelpers, baseStaticU
           const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, channelAdUnit, userData, videoTags);
           await buildVastPlayer(vastSettings, player);
         } else {
-          console.warn("[ARMANET INTEGRATION PLUGIN] Armanet or Armanet.getVastTag is not available");
+          console.error("[ARMANET INTEGRATION PLUGIN] Armanet or Armanet.getVastTag is not available");
         }
       } catch (error) {
         console.error("[ARMANET INTEGRATION PLUGIN] Error in Armanet integration:", error);
