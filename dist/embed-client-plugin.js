@@ -2840,7 +2840,13 @@ var getRollsStatus = (pluginSettings2) => {
   });
 };
 var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit, userData2, videoTags) => {
-  const { skipTime, controlsEnabled, messageSkip, messageSkipCountdown, messageRemainingTime } = pluginSettings2;
+  const {
+    skipTime,
+    controlsEnabled,
+    messageSkip,
+    messageSkipCountdown,
+    messageRemainingTime
+  } = pluginSettings2;
   const vastSettings = {
     skip: skipTime,
     controlsEnabled,
@@ -2856,7 +2862,9 @@ var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit,
     Object.assign(vastSettings, {
       displayRemainingTime: true,
       displayRemainingTimeIcons: true,
-      messages: __spreadProps(__spreadValues({}, vastSettings.messages), { remainingTime: messageRemainingTime })
+      messages: __spreadProps(__spreadValues({}, vastSettings.messages), {
+        remainingTime: messageRemainingTime
+      })
     });
   }
   const getArmanetVastUrl = (adUnit, roll) => {
