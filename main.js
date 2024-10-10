@@ -121,10 +121,9 @@ async function register({
     });
 
     if (!response.ok) {
-      console.error(
-        '[ARMANET INTEGRATION PLUGIN] Failed to fetch channel data. Status:',
-        response.status,
-      );
+      const errorMessage = await response.json();
+      logger.info('[ARMANET INTEGRATION PLUGIN] [main.js] fetch error:', errorMessage);
+      logger.info('[ARMANET INTEGRATION PLUGIN] [main.js] fetch error status: %s', response.status);
       return null;
     }
 
