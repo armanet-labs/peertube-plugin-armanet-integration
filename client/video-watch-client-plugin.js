@@ -62,6 +62,9 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
             video?.pluginData?.armanet?.channel_adUnit?.uuid ?? null;
           const videoTags = video?.tags ?? [];
 
+          console.log("[ARMANET INTEGRATION PLUGIN] [client] video pluginData", video?.pluginData)
+          console.log("[ARMANET INTEGRATION PLUGIN] [client] channelName", channelName)
+
           const vastSettings = createVastSettings(
             pluginSettings,
             Armanet,

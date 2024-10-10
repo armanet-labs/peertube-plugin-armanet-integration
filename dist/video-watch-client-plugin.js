@@ -2945,6 +2945,8 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
           const channelName = (_b2 = (_a2 = video == null ? void 0 : video.channel) == null ? void 0 : _a2.name) != null ? _b2 : "unknown";
           const channelAdUnit = (_f = (_e = (_d = (_c = video == null ? void 0 : video.pluginData) == null ? void 0 : _c.armanet) == null ? void 0 : _d.channel_adUnit) == null ? void 0 : _e.uuid) != null ? _f : null;
           const videoTags = (_g = video == null ? void 0 : video.tags) != null ? _g : [];
+          console.log("[ARMANET INTEGRATION PLUGIN] [client] video pluginData", video == null ? void 0 : video.pluginData);
+          console.log("[ARMANET INTEGRATION PLUGIN] [client] channelName", channelName);
           const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, channelAdUnit, userData, videoTags);
           await buildVastPlayer(vastSettings, player);
         } else {

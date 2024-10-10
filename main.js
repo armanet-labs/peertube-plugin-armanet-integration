@@ -7,12 +7,17 @@ async function register({
   registerSetting,
   settingsManager,
   storageManager,
+  peertubeHelpers,
 }) {
   pluginSettings.forEach(registerSetting);
+
+  const { logger } = peertubeHelpers
 
   const apiKey = await settingsManager.getSetting('armanet-api-key');
 
   if (!apiKey?.trim()) return;
+
+  logger.info('[ARMANET INTEGRATION PLUGIN] [main.js] apiKey: %s', apiKey);
 
   const hooks = [
     {
@@ -43,6 +48,9 @@ async function register({
     const result = await getStorageData(channelName);
 
     if (!result) return video;
+
+    logger.info('[ARMANET INTEGRATION PLUGIN] [main] [handleVideoGet] channelName: %s', channelName);
+    logger.info('[ARMANET INTEGRATION PLUGIN] [main] [handleVideoGet] channel_adUnit:', result);
 
     video.pluginData['armanet'] = { channel_adUnit: result };
 
@@ -84,6 +92,8 @@ async function register({
   const createOrUpdateArmanetChannelAdUnit = async (channelName) => {
     const response = await fetchArmanetChannelAdUnit({ name: channelName });
     if (response) await setStorageData(channelName, { uuid: response.uuid });
+    logger.info('[ARMANET INTEGRATION PLUGIN] [main] [createOrUpdateArmanetChannelAdUnit] channelName: %s', channelName);
+    logger.info('[ARMANET INTEGRATION PLUGIN] [main] [createOrUpdateArmanetChannelAdUnit] response UUID: %s', response.uuid);
   };
 
   const deleteArmanetChannelAdUnit = async (channelName, uuid) => {
