@@ -127,7 +127,11 @@ async function register({
       return null;
     }
 
-    return response.json();
+    const jsonMessage = await response.json();
+
+    logger.info('[ARMANET INTEGRATION PLUGIN] [main.js] fetch success:', jsonMessage);
+
+    return jsonMessage;
   };
 
   const getChannelName = (videoChannel) =>
