@@ -113,3 +113,52 @@ Original @ https://github.com/theonion/videojs-vast-plugin (commit bf6ce85fa7632
   right: 0;
   bottom: 0;
 }
+
+/* ADMIN TABLE STYLES */
+.armanet-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 16px;
+  text-align: left;
+}
+
+.armanet-table th, .armanet-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.armanet-table thead th {
+  background-color: #f2f2f2;
+  color: #333;
+  font-weight: bold;
+}
+
+.armanet-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.armanet-table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+.armanet-table th, .armanet-table td {
+  text-align: center;
+}
+
+.armanet-table {
+  border: 1px solid #ddd;
+}
+
+.armanet-button {
+  display: inline-block;
+  padding: 4px 13px;
+  background-color: var(--mainColor);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 23px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 3px;
+}

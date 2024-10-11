@@ -11,8 +11,11 @@ async function register({
   settingsManager,
   storageManager,
   peertubeHelpers,
+  getRouter,
 }) {
   pluginSettings.forEach(registerSetting);
+
+  const router = getRouter();
 
   const { logger } = peertubeHelpers;
   loggerArmanet.setLogger(logger);
@@ -28,6 +31,54 @@ async function register({
   settingsManager.onSettingsChange(async (newSettings) => {
     await updateSettings(loggerArmanet, newSettings)
   });
+
+  router.use('/get-channels', async (req, res) => {
+    const channels = req.body.data;
+
+    const channelData = [];
+
+    for (const channel of channels) {
+      const channelName = channel.name;
+      const channelUrl = channel.url;
+      const channelDisplayName = channel.displayName;
+      const adUnit = await getStorageData(channelName);
+
+      channelData.push({ channelName, channelUrl, channelDisplayName, adUnit });
+    }
+
+    return res.status(200).send(channelData);
+  })
+
+  router.use('/sync-channels', async (req, res) => {
+    const channels = req.body;
+    loggerArmanet.info("sync channels", {channels: channels, tags: ['armanet']});
+
+    const successData = [];
+    const errorData = [];
+    let syncCount = 0;
+
+    for (const channel of channels) {
+      const channelName = channel.channelName;
+      const channelAdUnit = channel.adUnit;
+
+      if (channelAdUnit) continue;
+
+      const response = await createOrUpdateArmanetChannelAdUnit(channelName);
+
+      if (response) {
+        syncCount++;
+        successData.push({ channelName, uuid: response?.uuid });
+        loggerArmanet.info("[sync-channels] synced channel", {channelName: channelName, response: JSON.stringify(response, null, 2), tags: ['armanet']});
+      } else {
+        errorData.push({ channelName });
+        loggerArmanet.info("[sync-channels] failed to sync channel", {channelName: channelName, tags: ['armanet']});
+      }
+    }
+
+    loggerArmanet.info("sync result", {successData, errorData, syncCount, tags: ['armanet']});
+
+    return res.status(200).send({ successData, errorData, syncCount });
+  })
 
   const hooks = [
     {
@@ -107,6 +158,7 @@ async function register({
     const response = await fetchArmanetChannelAdUnit({ name: channelName });
     if (response) await setStorageData(channelName, { uuid: response.uuid });
     loggerArmanet.info('[createOrUpdateArmanetChannelAdUnit]', {channelName: channelName, fetchResponseUUID: response?.uuid, tags: ['armanet']});
+    return response;
   };
 
   const deleteArmanetChannelAdUnit = async (channelName, uuid) => {
@@ -160,7 +212,6 @@ async function register({
 
   const getStorageData = async (name) => {
     const storageData = await storageManager.getData(getStorageKey(name));
-    loggerArmanet.info('[getStorageData]', {name: name, storageData: storageData, tags: ['armanet']});
     return storageData;
   };
 
