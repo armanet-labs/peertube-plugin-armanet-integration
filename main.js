@@ -1,7 +1,6 @@
 const pluginSettings = require('./lib/pluginSettings');
 const adUnitStoragePrefix = 'ch_';
-// const armanetAdUnitUrl = 'https://api.armanet.us/dynamic-ad-unit';
-const armanetAdUnitUrl = 'https://9stdjnvnwu.sharedwithexpose.com/api/dynamic-ad-unit';
+const armanetAdUnitUrl = 'https://api.armanet.us/dynamic-ad-unit';
 let serverDebugEnabled;
 let loggerArmanet;
 let apiKey;
