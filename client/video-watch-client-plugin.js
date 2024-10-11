@@ -21,6 +21,7 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
   }
 
   const pluginSettings = settings(s);
+  const clientDebugEnabled = pluginSettings.clientDebugEnabled;
   const rollsStatus = getRollsStatus(pluginSettings);
   const authUser = await peertubeHelpers.getUser();
   const userData = {
@@ -62,8 +63,11 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
             video?.pluginData?.armanet?.channel_adUnit?.uuid ?? null;
           const videoTags = video?.tags ?? [];
 
-          console.log("[ARMANET INTEGRATION PLUGIN] [client] video pluginData", video?.pluginData)
-          console.log("[ARMANET INTEGRATION PLUGIN] [client] channelName", channelName)
+          if (clientDebugEnabled) {
+            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] video", { video, videoTags })
+            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] channel", { channelName, channelAdUnit })
+            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] user", { userData })
+          }
 
           const vastSettings = createVastSettings(
             pluginSettings,
@@ -75,15 +79,19 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
           );
           await buildVastPlayer(vastSettings, player);
         } else {
-          console.error(
-            '[ARMANET INTEGRATION PLUGIN] Armanet or Armanet.getVastTag is not available',
-          );
+          if (clientDebugEnabled) {
+            console.error(
+              '[ARMANET INTEGRATION PLUGIN] [debug] Armanet or Armanet.getVastTag is not available',
+            );
+          }
         }
       } catch (error) {
-        console.error(
-          '[ARMANET INTEGRATION PLUGIN] Error in Armanet integration:',
-          error,
-        );
+        if (clientDebugEnabled) {
+          console.error(
+            '[ARMANET INTEGRATION PLUGIN] [debug] Error in Armanet integration:',
+            error,
+          );
+        }
       }
     },
   });

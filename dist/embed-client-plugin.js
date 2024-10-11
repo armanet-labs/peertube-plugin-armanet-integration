@@ -2787,7 +2787,7 @@ var DEFAULT_SKIP_COUNTDOWN_MESSAGE = "Skip in {seconds}...";
 var DEFAULT_SKIP_MESSAGE = "Skip";
 var ARMANET_JS_URL = "https://assets.armanet.us/armanet-pxl.js";
 var settings = (s) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
   return {
     preroll: {
       enabled: (_a = s["armanet-preroll-enabled"]) != null ? _a : false,
@@ -2807,7 +2807,8 @@ var settings = (s) => {
     skipTime: (_g = s["armanet-skip-time"]) != null ? _g : DEFAULT_SKIP_TIME,
     messageSkipCountdown: (_h = s["armanet-message-skip-countdown"]) != null ? _h : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
     messageSkip: (_i = s["armanet-message-skip"]) != null ? _i : DEFAULT_SKIP_MESSAGE,
-    messageRemainingTime: s["armanet-message-remainingTime"]
+    messageRemainingTime: s["armanet-message-remainingTime"],
+    clientDebugEnabled: (_j = s["armanet-client-debug-enabled"]) != null ? _j : false
   };
 };
 var loadArmanetPxl = () => {
@@ -2845,7 +2846,8 @@ var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit,
     controlsEnabled,
     messageSkip,
     messageSkipCountdown,
-    messageRemainingTime
+    messageRemainingTime,
+    clientDebugEnabled
   } = pluginSettings2;
   const vastSettings = {
     skip: skipTime,
@@ -2873,6 +2875,9 @@ var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit,
       channel: channelName,
       skippable: skipTime > 0
     }, (userData2 == null ? void 0 : userData2.username) && (userData2 == null ? void 0 : userData2.email) && { viewer: [userData2.username, userData2.email] }), videoTags.length > 0 && { tags: videoTags });
+    if (clientDebugEnabled) {
+      console.log("[ARMANET INTEGRATION PLUGIN] [debug] [createVastSettings] [getArmanetVastUrl]", { adUnit, armanetParams });
+    }
     return Armanet2.getVastTag(adUnit, armanetParams) || "";
   };
   const rollsStatus2 = getRollsStatus(pluginSettings2);
@@ -2885,9 +2890,13 @@ var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit,
     if (rollsStatus2[rollType]) {
       const rollAdUnit = channelAdUnit || pluginSettings2[rollType].adUnit;
       if (rollAdUnit && offset) {
+        const vastUrl = getArmanetVastUrl(rollAdUnit, roll);
+        if (clientDebugEnabled) {
+          console.log("[ARMANET INTEGRATION PLUGIN] [debug] [createVastSettings] adding roll schedule", { rollAdUnit, offset, vastUrl });
+        }
         vastSettings.schedule.push({
           offset,
-          url: getArmanetVastUrl(rollAdUnit, roll)
+          url: vastUrl
         });
       }
     }

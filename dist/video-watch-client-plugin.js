@@ -2787,7 +2787,7 @@ var DEFAULT_SKIP_COUNTDOWN_MESSAGE = "Skip in {seconds}...";
 var DEFAULT_SKIP_MESSAGE = "Skip";
 var ARMANET_JS_URL = "https://assets.armanet.us/armanet-pxl.js";
 var settings = (s) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
   return {
     preroll: {
       enabled: (_a = s["armanet-preroll-enabled"]) != null ? _a : false,
@@ -2807,7 +2807,8 @@ var settings = (s) => {
     skipTime: (_g = s["armanet-skip-time"]) != null ? _g : DEFAULT_SKIP_TIME,
     messageSkipCountdown: (_h = s["armanet-message-skip-countdown"]) != null ? _h : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
     messageSkip: (_i = s["armanet-message-skip"]) != null ? _i : DEFAULT_SKIP_MESSAGE,
-    messageRemainingTime: s["armanet-message-remainingTime"]
+    messageRemainingTime: s["armanet-message-remainingTime"],
+    clientDebugEnabled: (_j = s["armanet-client-debug-enabled"]) != null ? _j : false
   };
 };
 var loadArmanetPxl = () => {
@@ -2845,7 +2846,8 @@ var createVastSettings = (pluginSettings, Armanet2, channelName, channelAdUnit, 
     controlsEnabled,
     messageSkip,
     messageSkipCountdown,
-    messageRemainingTime
+    messageRemainingTime,
+    clientDebugEnabled
   } = pluginSettings;
   const vastSettings = {
     skip: skipTime,
@@ -2873,6 +2875,9 @@ var createVastSettings = (pluginSettings, Armanet2, channelName, channelAdUnit, 
       channel: channelName,
       skippable: skipTime > 0
     }, (userData == null ? void 0 : userData.username) && (userData == null ? void 0 : userData.email) && { viewer: [userData.username, userData.email] }), videoTags.length > 0 && { tags: videoTags });
+    if (clientDebugEnabled) {
+      console.log("[ARMANET INTEGRATION PLUGIN] [debug] [createVastSettings] [getArmanetVastUrl]", { adUnit, armanetParams });
+    }
     return Armanet2.getVastTag(adUnit, armanetParams) || "";
   };
   const rollsStatus = getRollsStatus(pluginSettings);
@@ -2885,9 +2890,13 @@ var createVastSettings = (pluginSettings, Armanet2, channelName, channelAdUnit, 
     if (rollsStatus[rollType]) {
       const rollAdUnit = channelAdUnit || pluginSettings[rollType].adUnit;
       if (rollAdUnit && offset) {
+        const vastUrl = getArmanetVastUrl(rollAdUnit, roll);
+        if (clientDebugEnabled) {
+          console.log("[ARMANET INTEGRATION PLUGIN] [debug] [createVastSettings] adding roll schedule", { rollAdUnit, offset, vastUrl });
+        }
         vastSettings.schedule.push({
           offset,
-          url: getArmanetVastUrl(rollAdUnit, roll)
+          url: vastUrl
         });
       }
     }
@@ -2915,6 +2924,7 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
     return;
   }
   const pluginSettings = settings(s);
+  const clientDebugEnabled = pluginSettings.clientDebugEnabled;
   const rollsStatus = getRollsStatus(pluginSettings);
   const authUser = await peertubeHelpers.getUser();
   const userData = {
@@ -2945,15 +2955,22 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
           const channelName = (_b2 = (_a2 = video == null ? void 0 : video.channel) == null ? void 0 : _a2.name) != null ? _b2 : "unknown";
           const channelAdUnit = (_f = (_e = (_d = (_c = video == null ? void 0 : video.pluginData) == null ? void 0 : _c.armanet) == null ? void 0 : _d.channel_adUnit) == null ? void 0 : _e.uuid) != null ? _f : null;
           const videoTags = (_g = video == null ? void 0 : video.tags) != null ? _g : [];
-          console.log("[ARMANET INTEGRATION PLUGIN] [client] video pluginData", video == null ? void 0 : video.pluginData);
-          console.log("[ARMANET INTEGRATION PLUGIN] [client] channelName", channelName);
+          if (clientDebugEnabled) {
+            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] video", { video, videoTags });
+            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] channel", { channelName, channelAdUnit });
+            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] user", { userData });
+          }
           const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, channelAdUnit, userData, videoTags);
           await buildVastPlayer(vastSettings, player);
         } else {
-          console.error("[ARMANET INTEGRATION PLUGIN] Armanet or Armanet.getVastTag is not available");
+          if (clientDebugEnabled) {
+            console.error("[ARMANET INTEGRATION PLUGIN] [debug] Armanet or Armanet.getVastTag is not available");
+          }
         }
       } catch (error) {
-        console.error("[ARMANET INTEGRATION PLUGIN] Error in Armanet integration:", error);
+        if (clientDebugEnabled) {
+          console.error("[ARMANET INTEGRATION PLUGIN] [debug] Error in Armanet integration:", error);
+        }
       }
     }
   });
