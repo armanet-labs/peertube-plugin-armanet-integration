@@ -29,6 +29,12 @@
       "scopes": [
         "embed"
       ]
+    },
+    {
+      "script": "dist/admin-plugin-client-plugin.js",
+      "scopes": [
+        "common"
+      ]
     }
   ],
   "css": [
