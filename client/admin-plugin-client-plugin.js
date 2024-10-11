@@ -18,7 +18,7 @@ async function handleChannelsList (registerHook, peertubeHelpers, registerSettin
       const channelsListEndpoint = peertubeHelpers.getBaseRouterRoute()+"/get-channels";
       const channelsSyncEndpoint = peertubeHelpers.getBaseRouterRoute()+"/sync-channels";
       try {
-        const chs = await fetch('/api/v1/video-channels', {method: 'GET'})
+        const chs = await fetch('/api/v1/video-channels?count=100', {method: 'GET'})
         const data = await chs.json();
 
         const channelsListFetch = await fetch(channelsListEndpoint, {
