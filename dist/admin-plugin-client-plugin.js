@@ -99,7 +99,7 @@ async function handleChannelsList(registerHook, peertubeHelpers, registerSetting
           }
         };
       } catch (err) {
-        console.log("error attempting to fetch matrix chat room id", channelsListEndpoint, err);
+        console.error("error attempting to fetch channels", err);
       }
     }
   });
