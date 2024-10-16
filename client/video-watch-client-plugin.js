@@ -30,17 +30,6 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
   };
 
   registerHook({
-    target: 'filter:internal.video-watch.player.load-options.result',
-    handler: (result) => {
-      if (rollsStatus.hasAtLeastOneRollEnabled) {
-        result.autoplay = false;
-      }
-
-      return result;
-    },
-  });
-
-  registerHook({
     target: 'action:video-watch.player.loaded',
     handler: async ({ videojs, player, video }) => {
       if (!rollsStatus.hasAtLeastOneRollEnabled) return;

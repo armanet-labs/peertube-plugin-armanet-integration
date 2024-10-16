@@ -2932,15 +2932,6 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
     email: (_b = authUser == null ? void 0 : authUser.email) != null ? _b : ""
   };
   registerHook({
-    target: "filter:internal.video-watch.player.load-options.result",
-    handler: (result) => {
-      if (rollsStatus.hasAtLeastOneRollEnabled) {
-        result.autoplay = false;
-      }
-      return result;
-    }
-  });
-  registerHook({
     target: "action:video-watch.player.loaded",
     handler: async ({ videojs: videojs2, player, video }) => {
       var _a2, _b2, _c, _d, _e, _f, _g;
