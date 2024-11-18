@@ -3823,12 +3823,11 @@ var createVastSettings = (pluginSettings, Armanet2, channelName, channelAdUnit, 
     if (rollsStatus[rollType]) {
       const rollAdUnit = channelAdUnit || pluginSettings[rollType].adUnit;
       if (rollAdUnit && offset) {
-        const videoDuration = video.duration;
-        console.log("parseInt(videoDuration/60)", parseInt(videoDuration / 60) < minTime);
-        console.log("minTime", minTime);
-        console.log("parseInt(videoDuration/60) < minTime", parseInt(videoDuration / 60) < minTime);
-        if (parseInt(videoDuration / 60) < minTime)
-          return;
+        if (video.duration != 0) {
+          const videoDurationInMins = parseInt(video.duration / 60);
+          if (videoDurationInMins < minTime)
+            return;
+        }
         const vastUrl = getArmanetVastUrl(rollAdUnit, roll);
         if (clientDebugEnabled) {
           console.log("[ARMANET INTEGRATION PLUGIN] [debug] [createVastSettings] adding roll schedule", { rollAdUnit, offset, vastUrl });
@@ -3909,7 +3908,6 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
     handler: async () => {
       if (!companionsStatus.hasAtLeastOneCompanionEnabled)
         return;
-      console.log("pluginSettings", pluginSettings);
       try {
         if (!resourceHintsConfigured) {
           setupResourceHints();
@@ -3943,7 +3941,6 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
             user: userData
           });
           const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, channelAdUnit, userData, videoTags, video);
-          console.log("createBastSetting client plugin", vastSettings);
           await buildVastPlayer(vastSettings, player);
         } else {
           clientDebug("PLAYER", "Armanet or Armanet.getVastTag is not available");

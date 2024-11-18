@@ -3734,12 +3734,11 @@ var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit,
     if (rollsStatus2[rollType]) {
       const rollAdUnit = channelAdUnit || pluginSettings2[rollType].adUnit;
       if (rollAdUnit && offset) {
-        const videoDuration = video.duration;
-        console.log("parseInt(videoDuration/60)", parseInt(videoDuration / 60) < minTime);
-        console.log("minTime", minTime);
-        console.log("parseInt(videoDuration/60) < minTime", parseInt(videoDuration / 60) < minTime);
-        if (parseInt(videoDuration / 60) < minTime)
-          return;
+        if (video.duration != 0) {
+          const videoDurationInMins = parseInt(video.duration / 60);
+          if (videoDurationInMins < minTime)
+            return;
+        }
         const vastUrl = getArmanetVastUrl(rollAdUnit, roll);
         if (clientDebugEnabled) {
           console.log("[ARMANET INTEGRATION PLUGIN] [debug] [createVastSettings] adding roll schedule", { rollAdUnit, offset, vastUrl });
