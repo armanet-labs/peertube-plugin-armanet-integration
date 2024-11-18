@@ -3658,13 +3658,15 @@ var loadArmanetPxl = () => {
 };
 var loadContribAds = async (player) => {
   try {
-    const { default: contrib } = await Promise.resolve().then(() => __toESM(require_videojs_ads_min()));
-    player.ads({
-      debug: false,
-      liveCuePoints: true,
-      stitchedAds: false,
-      allowVjsAutoplay: true
-    });
+    if (!player.ads) {
+      const { default: contrib } = await Promise.resolve().then(() => __toESM(require_videojs_ads_min()));
+      player.ads({
+        debug: true,
+        liveCuePoints: true,
+        stitchedAds: false,
+        allowVjsAutoplay: true
+      });
+    }
   } catch (error) {
     console.error("Error loading ads plugin:", error);
   }

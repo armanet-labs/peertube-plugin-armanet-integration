@@ -9,6 +9,7 @@ import {
   createVastSettings,
   buildVastPlayer,
   createClientDebug,
+  cleanupCompanions,
 } from '../lib/shared.js';
 
 function register({ registerHook, peertubeHelpers }) {
@@ -33,6 +34,27 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
     username: authUser?.username ?? '',
     email: authUser?.email ?? '',
   };
+  let resourceHintsConfigured = false;
+
+  registerHook({
+    target: 'action:router.navigation-end',
+    handler: async ({path}) => {
+      if (!path.startsWith('/w/')) return;
+
+      if (window.player.ads.inAdBreak()) {
+        window.player.ads.endLinearAdMode();
+        const vastBlocker = document.querySelectorAll('.vast-blocker');
+        vastBlocker.forEach(holder => holder.remove());
+      }
+
+      cleanupCompanions();
+      window.dispatchEvent(new Event('loadAds'));
+      window.Armanet = undefined;
+      window.scriptLoadPromise = null;
+      window.videojs = undefined;
+      window.player = undefined;
+    }
+  });
 
   registerHook({
     target: 'action:video-watch.video.loaded',
@@ -40,7 +62,10 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
       if (!companionsStatus.hasAtLeastOneCompanionEnabled) return;
 
       try {
-        setupResourceHints();
+        if (!resourceHintsConfigured) {
+          setupResourceHints();
+          resourceHintsConfigured = true;
+        }
         await loadArmanetPxl();
         await handleCompanions(pluginSettings, clientDebug);
       } catch (error) {

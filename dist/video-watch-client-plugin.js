@@ -3702,15 +3702,21 @@ var setupResourceHints = () => {
     document.head.appendChild(fragment);
   }
 };
+var cleanupCompanions = () => {
+  const companionHolders = document.querySelectorAll(".companion-video-holder, .companion-sidebar-holder");
+  companionHolders.forEach((holder) => holder.remove());
+};
 var loadContribAds = async (player) => {
   try {
-    const { default: contrib } = await Promise.resolve().then(() => __toESM(require_videojs_ads_min()));
-    player.ads({
-      debug: false,
-      liveCuePoints: true,
-      stitchedAds: false,
-      allowVjsAutoplay: true
-    });
+    if (!player.ads) {
+      const { default: contrib } = await Promise.resolve().then(() => __toESM(require_videojs_ads_min()));
+      player.ads({
+        debug: true,
+        liveCuePoints: true,
+        stitchedAds: false,
+        allowVjsAutoplay: true
+      });
+    }
   } catch (error) {
     console.error("Error loading ads plugin:", error);
   }
@@ -3870,13 +3876,35 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
     username: (_a = authUser == null ? void 0 : authUser.username) != null ? _a : "",
     email: (_b = authUser == null ? void 0 : authUser.email) != null ? _b : ""
   };
+  let resourceHintsConfigured = false;
+  registerHook({
+    target: "action:router.navigation-end",
+    handler: async ({ path }) => {
+      if (!path.startsWith("/w/"))
+        return;
+      if (window.player.ads.inAdBreak()) {
+        window.player.ads.endLinearAdMode();
+        const vastBlocker = document.querySelectorAll(".vast-blocker");
+        vastBlocker.forEach((holder) => holder.remove());
+      }
+      cleanupCompanions();
+      window.dispatchEvent(new Event("loadAds"));
+      window.Armanet = void 0;
+      window.scriptLoadPromise = null;
+      window.videojs = void 0;
+      window.player = void 0;
+    }
+  });
   registerHook({
     target: "action:video-watch.video.loaded",
     handler: async () => {
       if (!companionsStatus.hasAtLeastOneCompanionEnabled)
         return;
       try {
-        setupResourceHints();
+        if (!resourceHintsConfigured) {
+          setupResourceHints();
+          resourceHintsConfigured = true;
+        }
         await loadArmanetPxl();
         await handleCompanions(pluginSettings, clientDebug);
       } catch (error) {
