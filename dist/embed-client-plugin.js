@@ -3600,8 +3600,9 @@ var DEFAULT_SKIP_TIME = 8;
 var DEFAULT_SKIP_COUNTDOWN_MESSAGE = "Skip in {seconds}...";
 var DEFAULT_SKIP_MESSAGE = "Skip";
 var ARMANET_JS_URL = "https://assets.armanet.us/armanet-pxl.js";
+var scriptLoadPromise = null;
 var settings = (s) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
   return {
     preroll: {
       enabled: (_a = s["armanet-preroll-enabled"]) != null ? _a : false,
@@ -3616,17 +3617,36 @@ var settings = (s) => {
       enabled: (_d = s["armanet-postroll-enabled"]) != null ? _d : false,
       adUnit: s["armanet-postroll-adunit"]
     },
-    embededEnabled: (_e = s["armanet-embeded-enabled"]) != null ? _e : true,
-    controlsEnabled: (_f = s["armanet-player-controls-enabled"]) != null ? _f : true,
-    skipTime: (_g = s["armanet-skip-time"]) != null ? _g : DEFAULT_SKIP_TIME,
-    messageSkipCountdown: (_h = s["armanet-message-skip-countdown"]) != null ? _h : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
-    messageSkip: (_i = s["armanet-message-skip"]) != null ? _i : DEFAULT_SKIP_MESSAGE,
+    companion: {
+      video: {
+        enabled: (_e = s["armanet-companion-video-enabled"]) != null ? _e : false,
+        adUnit: s["armanet-companion-video-adunit"]
+      },
+      sidebar: {
+        enabled: (_f = s["armanet-companion-sidebar-enabled"]) != null ? _f : false,
+        adUnit: s["armanet-companion-sidebar-adunit"]
+      }
+    },
+    embededEnabled: (_g = s["armanet-embeded-enabled"]) != null ? _g : true,
+    controlsEnabled: (_h = s["armanet-player-controls-enabled"]) != null ? _h : true,
+    skipTime: (_i = s["armanet-skip-time"]) != null ? _i : DEFAULT_SKIP_TIME,
+    messageSkipCountdown: (_j = s["armanet-message-skip-countdown"]) != null ? _j : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
+    messageSkip: (_k = s["armanet-message-skip"]) != null ? _k : DEFAULT_SKIP_MESSAGE,
     messageRemainingTime: s["armanet-message-remainingTime"],
-    clientDebugEnabled: (_j = s["armanet-client-debug-enabled"]) != null ? _j : false
+    clientDebugEnabled: (_l = s["armanet-client-debug-enabled"]) != null ? _l : false
   };
 };
+var isArmanetPxlLoaded = () => {
+  return !!document.querySelector(`script[src="${ARMANET_JS_URL}"]`);
+};
 var loadArmanetPxl = () => {
-  return new Promise((resolve, reject) => {
+  if (scriptLoadPromise)
+    return scriptLoadPromise;
+  scriptLoadPromise = new Promise((resolve, reject) => {
+    if (isArmanetPxlLoaded()) {
+      resolve();
+      return;
+    }
     const script = document.createElement("script");
     script.src = ARMANET_JS_URL;
     script.defer = true;
@@ -3634,16 +3654,19 @@ var loadArmanetPxl = () => {
     script.onerror = reject;
     document.head.appendChild(script);
   });
+  return scriptLoadPromise;
 };
 var loadContribAds = async (player) => {
   try {
-    const { default: contrib } = await Promise.resolve().then(() => __toESM(require_videojs_ads_min()));
-    player.ads({
-      debug: false,
-      liveCuePoints: true,
-      stitchedAds: false,
-      allowVjsAutoplay: true
-    });
+    if (!player.ads) {
+      const { default: contrib } = await Promise.resolve().then(() => __toESM(require_videojs_ads_min()));
+      player.ads({
+        debug: true,
+        liveCuePoints: true,
+        stitchedAds: false,
+        allowVjsAutoplay: true
+      });
+    }
   } catch (error) {
     console.error("Error loading ads plugin:", error);
   }

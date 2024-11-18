@@ -32,7 +32,9 @@ async function handleChannelsList(registerHook, peertubeHelpers, registerSetting
       const channelsListEndpoint = peertubeHelpers.getBaseRouterRoute() + "/get-channels";
       const channelsSyncEndpoint = peertubeHelpers.getBaseRouterRoute() + "/sync-channels";
       try {
-        const chs = await fetch("/api/v1/video-channels?count=100", { method: "GET" });
+        const chs = await fetch("/api/v1/video-channels?count=100", {
+          method: "GET"
+        });
         const data = await chs.json();
         const channelsListFetch = await fetch(channelsListEndpoint, {
           method: "POST",
@@ -126,6 +128,12 @@ function handleSettingsVisibility(registerSettingsScript) {
         return true;
       }
       if (options.setting.name === "armanet-postroll-adunit" && options.formValues["armanet-postroll-enabled"] === false) {
+        return true;
+      }
+      if (options.setting.name === "armanet-companion-video-adunit" && options.formValues["armanet-companion-video-enabled"] === false) {
+        return true;
+      }
+      if (options.setting.name === "armanet-companion-sidebar-adunit" && options.formValues["armanet-companion-sidebar-enabled"] === false) {
         return true;
       }
       if (options.setting.name === "armanet-message-skip-countdown" && options.formValues["armanet-skip-time"] == 0) {

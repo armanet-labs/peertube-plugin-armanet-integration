@@ -20,16 +20,18 @@ async function register({
   const { logger } = peertubeHelpers;
   loggerArmanet.setLogger(logger);
 
-  serverDebugEnabled = await settingsManager.getSetting('armanet-server-debug-enabled');
+  serverDebugEnabled = await settingsManager.getSetting(
+    'armanet-server-debug-enabled',
+  );
   apiKey = await settingsManager.getSetting('armanet-api-key');
 
   loggerArmanet.setDebugEnabled(serverDebugEnabled);
 
-  const settings = await getAllSettings(settingsManager)
-  await updateSettings(loggerArmanet, settings)
+  const settings = await getAllSettings(settingsManager);
+  await updateSettings(loggerArmanet, settings);
 
   settingsManager.onSettingsChange(async (newSettings) => {
-    await updateSettings(loggerArmanet, newSettings)
+    await updateSettings(loggerArmanet, newSettings);
   });
 
   router.use('/get-channels', async (req, res) => {
@@ -47,11 +49,14 @@ async function register({
     }
 
     return res.status(200).send(channelData);
-  })
+  });
 
   router.use('/sync-channels', async (req, res) => {
     const channels = req.body;
-    loggerArmanet.info("sync channels", {channels: channels, tags: ['armanet']});
+    loggerArmanet.info('sync channels', {
+      channels: channels,
+      tags: ['armanet'],
+    });
 
     const successData = [];
     const errorData = [];
@@ -68,17 +73,29 @@ async function register({
       if (response) {
         syncCount++;
         successData.push({ channelName, uuid: response?.uuid });
-        loggerArmanet.info("[sync-channels] synced channel", {channelName: channelName, response: JSON.stringify(response, null, 2), tags: ['armanet']});
+        loggerArmanet.info('[sync-channels] synced channel', {
+          channelName: channelName,
+          response: JSON.stringify(response, null, 2),
+          tags: ['armanet'],
+        });
       } else {
         errorData.push({ channelName });
-        loggerArmanet.info("[sync-channels] failed to sync channel", {channelName: channelName, tags: ['armanet']});
+        loggerArmanet.info('[sync-channels] failed to sync channel', {
+          channelName: channelName,
+          tags: ['armanet'],
+        });
       }
     }
 
-    loggerArmanet.info("sync result", {successData, errorData, syncCount, tags: ['armanet']});
+    loggerArmanet.info('sync result', {
+      successData,
+      errorData,
+      syncCount,
+      tags: ['armanet'],
+    });
 
     return res.status(200).send({ successData, errorData, syncCount });
-  })
+  });
 
   const hooks = [
     {
@@ -105,7 +122,10 @@ async function register({
     if (!video) return video;
 
     if (!apiKey?.trim()) {
-      loggerArmanet.info('[handleVideoGet] no API key defined so skipping storage lookup', {tags: ['armanet']});
+      loggerArmanet.info(
+        '[handleVideoGet] no API key defined so skipping storage lookup',
+        { tags: ['armanet'] },
+      );
       return video;
     }
 
@@ -118,7 +138,12 @@ async function register({
 
     video.pluginData['armanet'] = { channel_adUnit: result };
 
-    loggerArmanet.info('[handleVideoGet]:', {channelName: channelName, storageDataResult: result, videoPluginData: video?.pluginData?.armanet?.channel_adUnit, tags: ['armanet']});
+    loggerArmanet.info('[handleVideoGet]:', {
+      channelName: channelName,
+      storageDataResult: result,
+      videoPluginData: video?.pluginData?.armanet?.channel_adUnit,
+      tags: ['armanet'],
+    });
 
     return video;
   }
@@ -140,7 +165,13 @@ async function register({
       const channelName = getChannelName(videoChannel);
       const channelData = await getStorageData(channelName);
 
-      loggerArmanet.info('[handleChannelOperation] running operation:', {apiKey: apiKey, operation: operation, channelName: channelName, channelData: channelData?.uuid, tags: ['armanet']});
+      loggerArmanet.info('[handleChannelOperation] running operation:', {
+        apiKey: apiKey,
+        operation: operation,
+        channelName: channelName,
+        channelData: channelData?.uuid,
+        tags: ['armanet'],
+      });
 
       if (operation === 'deleted') {
         if (!channelData) return;
@@ -150,14 +181,23 @@ async function register({
         await createOrUpdateArmanetChannelAdUnit(channelName);
       }
     } catch (error) {
-      loggerArmanet.info('[handleChannelOperation] error:', {error, apiKey: apiKey, operation: operation, tags: ['armanet']});
+      loggerArmanet.info('[handleChannelOperation] error:', {
+        error,
+        apiKey: apiKey,
+        operation: operation,
+        tags: ['armanet'],
+      });
     }
   };
 
   const createOrUpdateArmanetChannelAdUnit = async (channelName) => {
     const response = await fetchArmanetChannelAdUnit({ name: channelName });
     if (response) await setStorageData(channelName, { uuid: response.uuid });
-    loggerArmanet.info('[createOrUpdateArmanetChannelAdUnit]', {channelName: channelName, fetchResponseUUID: response?.uuid, tags: ['armanet']});
+    loggerArmanet.info('[createOrUpdateArmanetChannelAdUnit]', {
+      channelName: channelName,
+      fetchResponseUUID: response?.uuid,
+      tags: ['armanet'],
+    });
     return response;
   };
 
@@ -168,7 +208,11 @@ async function register({
       `${armanetAdUnitUrl}/${uuid}`,
     );
 
-    if (response) loggerArmanet.info('[deleteArmanetChannelAdUnit] fetch Response', {response: JSON.stringify(response, null, 2), tags: ['armanet']});
+    if (response)
+      loggerArmanet.info('[deleteArmanetChannelAdUnit] fetch Response', {
+        response: JSON.stringify(response, null, 2),
+        tags: ['armanet'],
+      });
   };
 
   const fetchArmanetChannelAdUnit = async (
@@ -177,11 +221,20 @@ async function register({
     url = armanetAdUnitUrl,
   ) => {
     if (!apiKey?.trim()) {
-      loggerArmanet.info('[fetchArmanetChannelAdUnit] no API key defined so skipping fetch request to Armanet', {apiKey: apiKey, tags: ['armanet']});
+      loggerArmanet.info(
+        '[fetchArmanetChannelAdUnit] no API key defined so skipping fetch request to Armanet',
+        { apiKey: apiKey, tags: ['armanet'] },
+      );
       return null;
     }
 
-    loggerArmanet.info('[fetchArmanetChannelAdUnit] request parameters', {data: JSON.stringify(data, null, 2), method: method, url: url, apiKey: apiKey, tags: ['armanet']});
+    loggerArmanet.info('[fetchArmanetChannelAdUnit] request parameters', {
+      data: JSON.stringify(data, null, 2),
+      method: method,
+      url: url,
+      apiKey: apiKey,
+      tags: ['armanet'],
+    });
 
     const response = await fetch(url, {
       method: method,
@@ -195,12 +248,20 @@ async function register({
 
     if (!response.ok) {
       const errorMessage = await response.json();
-      loggerArmanet.info('[fetchArmanetChannelAdUnit] fetch error', {errorMessage: errorMessage, status: response.status, tags: ['armanet']});
+      loggerArmanet.info('[fetchArmanetChannelAdUnit] fetch error', {
+        errorMessage: errorMessage,
+        status: response.status,
+        tags: ['armanet'],
+      });
       return null;
     }
 
     const jsonMessage = await response.json();
-    loggerArmanet.info('[fetchArmanetChannelAdUnit] fetch success', {jsonMessage: jsonMessage, status: response.status, tags: ['armanet']});
+    loggerArmanet.info('[fetchArmanetChannelAdUnit] fetch success', {
+      jsonMessage: jsonMessage,
+      status: response.status,
+      tags: ['armanet'],
+    });
 
     return jsonMessage;
   };
@@ -255,10 +316,10 @@ loggerArmanet = {
   },
   setDebugEnabled: (debugEnabled) => {
     serverDebugEnabled = debugEnabled;
-  }
+  },
 };
 
-function getAllSettings (settingsManager) {
+function getAllSettings(settingsManager) {
   return settingsManager.getSettings([
     'armanet-preroll-enabled',
     'armanet-preroll-adunit',
@@ -267,6 +328,10 @@ function getAllSettings (settingsManager) {
     'armanet-midroll-offset',
     'armanet-postroll-enabled',
     'armanet-postroll-adunit',
+    'armanet-companion-video-enabled',
+    'armanet-companion-video-adunit',
+    'armanet-companion-sidebar-enabled',
+    'armanet-companion-sidebar-adunit',
     'armanet-embeded-enabled',
     'armanet-player-controls-enabled',
     'armanet-api-key',
@@ -276,26 +341,37 @@ function getAllSettings (settingsManager) {
     'armanet-message-remainingTime',
     'armanet-server-debug-enabled',
     'armanet-client-debug-enabled',
-  ])
+  ]);
 }
 
-async function updateSettings (loggerArmanet, newSettings) {
-  let newApiKey = newSettings['armanet-api-key']
-  let newServerDebugEnabled = newSettings['armanet-server-debug-enabled']
+async function updateSettings(loggerArmanet, newSettings) {
+  let newApiKey = newSettings['armanet-api-key'];
+  let newServerDebugEnabled = newSettings['armanet-server-debug-enabled'];
 
   if (newServerDebugEnabled !== serverDebugEnabled) {
     serverDebugEnabled = newServerDebugEnabled;
     loggerArmanet.setDebugEnabled(newServerDebugEnabled);
-    loggerArmanet.info(`[updateSettings] Server debug setting updated to: ${newServerDebugEnabled}`, { tags: ['armanet'] });
+    loggerArmanet.info(
+      `[updateSettings] Server debug setting updated to: ${newServerDebugEnabled}`,
+      { tags: ['armanet'] },
+    );
   }
 
   if (!newApiKey) {
-    loggerArmanet.info('[updateSettings] API key not provided', {apiKey: apiKey, newApiKey: newApiKey, tags: ['armanet']});
+    loggerArmanet.info('[updateSettings] API key not provided', {
+      apiKey: apiKey,
+      newApiKey: newApiKey,
+      tags: ['armanet'],
+    });
     apiKey = undefined;
   }
 
   if (newApiKey !== apiKey) {
-    loggerArmanet.info('[updateSettings] API key updated', {apiKey: apiKey, newApiKey: newApiKey, tags: ['armanet']});
+    loggerArmanet.info('[updateSettings] API key updated', {
+      apiKey: apiKey,
+      newApiKey: newApiKey,
+      tags: ['armanet'],
+    });
     apiKey = newApiKey;
   }
 }
