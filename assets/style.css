@@ -162,3 +162,12 @@ Original @ https://github.com/theonion/videojs-vast-plugin (commit bf6ce85fa7632
   cursor: pointer;
   border-radius: 3px;
 }
+
+/* COMPANION STYLES */
+.companion-video-holder iframe {
+  max-width: 100% !important;
+}
+
+.companion-sidebar-holder iframe {
+  max-width: 100% !important;
+}

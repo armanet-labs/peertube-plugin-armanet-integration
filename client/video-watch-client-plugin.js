@@ -1,10 +1,14 @@
 import {
   settings,
   loadArmanetPxl,
+  setupResourceHints,
   loadContribAds,
   getRollsStatus,
+  getCompanionsStatus,
+  handleCompanions,
   createVastSettings,
   buildVastPlayer,
+  createClientDebug,
 } from '../lib/shared.js';
 
 function register({ registerHook, peertubeHelpers }) {
@@ -21,13 +25,29 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
   }
 
   const pluginSettings = settings(s);
-  const clientDebugEnabled = pluginSettings.clientDebugEnabled;
+  const clientDebug = createClientDebug(pluginSettings.clientDebugEnabled);
   const rollsStatus = getRollsStatus(pluginSettings);
+  const companionsStatus = getCompanionsStatus(pluginSettings);
   const authUser = await peertubeHelpers.getUser();
   const userData = {
     username: authUser?.username ?? '',
     email: authUser?.email ?? '',
   };
+
+  registerHook({
+    target: 'action:video-watch.video.loaded',
+    handler: async () => {
+      if (!companionsStatus.hasAtLeastOneCompanionEnabled) return;
+
+      try {
+        setupResourceHints();
+        await loadArmanetPxl();
+        await handleCompanions(pluginSettings, clientDebug);
+      } catch (error) {
+        clientDebug('Companions', 'Error handling companions:', error);
+      }
+    }
+  });
 
   registerHook({
     target: 'action:video-watch.player.loaded',
@@ -37,26 +57,24 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
       window.videojs = videojs;
       window.player = player;
 
-      await loadContribAds(player);
-
       try {
-        await loadArmanetPxl();
+        await Promise.all([
+          loadContribAds(player),
+          loadArmanetPxl()
+        ]);
 
-        if (
-          typeof Armanet !== 'undefined' &&
-          Armanet &&
-          typeof Armanet.getVastTag === 'function'
-        ) {
+        if (typeof Armanet !== 'undefined' && Armanet?.getVastTag) {
           const channelName = video?.channel?.name ?? 'unknown';
           const channelAdUnit =
             video?.pluginData?.armanet?.channel_adUnit?.uuid ?? null;
           const videoTags = video?.tags ?? [];
 
-          if (clientDebugEnabled) {
-            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] video", { video, videoTags })
-            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] channel", { channelName, channelAdUnit })
-            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] user", { userData })
-          }
+          clientDebug('PLAYER', 'Player loaded', {
+            video,
+            videoTags,
+            channel: { channelName, channelAdUnit },
+            user: userData
+          });
 
           const vastSettings = createVastSettings(
             pluginSettings,
@@ -68,19 +86,10 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
           );
           await buildVastPlayer(vastSettings, player);
         } else {
-          if (clientDebugEnabled) {
-            console.error(
-              '[ARMANET INTEGRATION PLUGIN] [debug] Armanet or Armanet.getVastTag is not available',
-            );
-          }
+          clientDebug('PLAYER', 'Armanet or Armanet.getVastTag is not available');
         }
       } catch (error) {
-        if (clientDebugEnabled) {
-          console.error(
-            '[ARMANET INTEGRATION PLUGIN] [debug] Error in Armanet integration:',
-            error,
-          );
-        }
+        clientDebug('PLAYER', 'Error in Armanet integration:', error);
       }
     },
   });

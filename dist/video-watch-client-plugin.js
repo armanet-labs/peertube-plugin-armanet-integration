@@ -3600,8 +3600,27 @@ var DEFAULT_SKIP_TIME = 8;
 var DEFAULT_SKIP_COUNTDOWN_MESSAGE = "Skip in {seconds}...";
 var DEFAULT_SKIP_MESSAGE = "Skip";
 var ARMANET_JS_URL = "https://assets.armanet.us/armanet-pxl.js";
+var COMPANION_CONFIGS = {
+  video: {
+    selector: ".video-info-first-row-bottom",
+    className: "companion-video-holder px-3",
+    insertAfter: true
+  },
+  sidebar: {
+    selector: ".other-videos",
+    className: "companion-sidebar-holder mb-3",
+    insertAfter: false
+  }
+};
+var ARMANET_RESOURCES = {
+  domains: {
+    image: "i.armanet.us",
+    service: "srv.armanet.us"
+  }
+};
+var scriptLoadPromise = null;
 var settings = (s) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
   return {
     preroll: {
       enabled: (_a = s["armanet-preroll-enabled"]) != null ? _a : false,
@@ -3616,17 +3635,36 @@ var settings = (s) => {
       enabled: (_d = s["armanet-postroll-enabled"]) != null ? _d : false,
       adUnit: s["armanet-postroll-adunit"]
     },
-    embededEnabled: (_e = s["armanet-embeded-enabled"]) != null ? _e : true,
-    controlsEnabled: (_f = s["armanet-player-controls-enabled"]) != null ? _f : true,
-    skipTime: (_g = s["armanet-skip-time"]) != null ? _g : DEFAULT_SKIP_TIME,
-    messageSkipCountdown: (_h = s["armanet-message-skip-countdown"]) != null ? _h : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
-    messageSkip: (_i = s["armanet-message-skip"]) != null ? _i : DEFAULT_SKIP_MESSAGE,
+    companion: {
+      video: {
+        enabled: (_e = s["armanet-companion-video-enabled"]) != null ? _e : false,
+        adUnit: s["armanet-companion-video-adunit"]
+      },
+      sidebar: {
+        enabled: (_f = s["armanet-companion-sidebar-enabled"]) != null ? _f : false,
+        adUnit: s["armanet-companion-sidebar-adunit"]
+      }
+    },
+    embededEnabled: (_g = s["armanet-embeded-enabled"]) != null ? _g : true,
+    controlsEnabled: (_h = s["armanet-player-controls-enabled"]) != null ? _h : true,
+    skipTime: (_i = s["armanet-skip-time"]) != null ? _i : DEFAULT_SKIP_TIME,
+    messageSkipCountdown: (_j = s["armanet-message-skip-countdown"]) != null ? _j : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
+    messageSkip: (_k = s["armanet-message-skip"]) != null ? _k : DEFAULT_SKIP_MESSAGE,
     messageRemainingTime: s["armanet-message-remainingTime"],
-    clientDebugEnabled: (_j = s["armanet-client-debug-enabled"]) != null ? _j : false
+    clientDebugEnabled: (_l = s["armanet-client-debug-enabled"]) != null ? _l : false
   };
 };
+var isArmanetPxlLoaded = () => {
+  return !!document.querySelector(`script[src="${ARMANET_JS_URL}"]`);
+};
 var loadArmanetPxl = () => {
-  return new Promise((resolve, reject) => {
+  if (scriptLoadPromise)
+    return scriptLoadPromise;
+  scriptLoadPromise = new Promise((resolve, reject) => {
+    if (isArmanetPxlLoaded()) {
+      resolve();
+      return;
+    }
     const script = document.createElement("script");
     script.src = ARMANET_JS_URL;
     script.defer = true;
@@ -3634,6 +3672,35 @@ var loadArmanetPxl = () => {
     script.onerror = reject;
     document.head.appendChild(script);
   });
+  return scriptLoadPromise;
+};
+var setupResourceHints = () => {
+  const hints = [
+    {
+      rel: "dns-prefetch",
+      urls: Object.values(ARMANET_RESOURCES.domains).map((domain) => `//${domain}`)
+    },
+    {
+      rel: "preconnect",
+      urls: Object.values(ARMANET_RESOURCES.domains).map((domain) => `https://${domain}`)
+    }
+  ];
+  const existingHints = new Set(Array.from(document.querySelectorAll('link[rel="dns-prefetch"], link[rel="preconnect"]')).map((link) => `${link.rel}:${link.href}`));
+  const fragment = document.createDocumentFragment();
+  hints.forEach(({ rel, urls }) => {
+    urls.forEach((url) => {
+      const hintKey = `${rel}:${url}`;
+      if (!existingHints.has(hintKey)) {
+        const link = document.createElement("link");
+        link.rel = rel;
+        link.href = url;
+        fragment.appendChild(link);
+      }
+    });
+  });
+  if (fragment.hasChildNodes()) {
+    document.head.appendChild(fragment);
+  }
 };
 var loadContribAds = async (player) => {
   try {
@@ -3658,6 +3725,45 @@ var getRollsStatus = (pluginSettings) => {
   return __spreadProps(__spreadValues({}, rolls), {
     hasAtLeastOneRollEnabled: Object.values(rolls).some(Boolean)
   });
+};
+var getCompanionsStatus = (pluginSettings) => {
+  const isCompanionEnabled = (companion) => companion.adUnit && companion.enabled;
+  const companions = {
+    video: isCompanionEnabled(pluginSettings.companion.video),
+    sidebar: isCompanionEnabled(pluginSettings.companion.sidebar)
+  };
+  return __spreadProps(__spreadValues({}, companions), {
+    hasAtLeastOneCompanionEnabled: Object.values(companions).some(Boolean)
+  });
+};
+var handleCompanions = async (settings2, clientDebug) => {
+  const enabledCompanions = Object.entries(settings2.companion).filter(([_, config]) => config.enabled && config.adUnit);
+  const insertCompanion = async ([type, config]) => {
+    const companionConfig = COMPANION_CONFIGS[type];
+    if (!companionConfig) {
+      clientDebug("COMPANION", `Invalid companion type: ${type}`);
+      return;
+    }
+    const reference = document.querySelector(companionConfig.selector);
+    if (!reference) {
+      clientDebug("COMPANION", `Reference element not found for ${type}`);
+      return;
+    }
+    try {
+      const holder = document.createElement("div");
+      holder.className = companionConfig.className;
+      holder.innerHTML = `<div data-armanet="${config.adUnit}"></div>`;
+      if (companionConfig.insertAfter) {
+        reference.parentNode.insertBefore(holder, reference.nextSibling);
+      } else {
+        reference.insertBefore(holder, reference.firstChild);
+      }
+      clientDebug("COMPANION", `Successfully inserted ${type} companion`);
+    } catch (error) {
+      console.error(`[ARMANET INTEGRATION PLUGIN] Error inserting ${type} companion:`, error);
+    }
+  };
+  await Promise.all(enabledCompanions.map(insertCompanion));
 };
 var createVastSettings = (pluginSettings, Armanet2, channelName, channelAdUnit, userData, videoTags) => {
   const {
@@ -3730,6 +3836,19 @@ var buildVastPlayer = async (vastSettings, player) => {
     console.error("Error loading VastPlugin:", error);
   }
 };
+var createClientDebug = (clientDebugEnabled) => {
+  return (section, message, data) => {
+    if (!clientDebugEnabled)
+      return;
+    const prefix = "[ARMANET INTEGRATION PLUGIN] [debug]";
+    const sectionTag = section ? ` [${section}]` : "";
+    if (data) {
+      console.log(`${prefix}${sectionTag}`, message, data);
+    } else {
+      console.log(`${prefix}${sectionTag}`, message);
+    }
+  };
+};
 
 // client/video-watch-client-plugin.js
 function register({ registerHook, peertubeHelpers }) {
@@ -3743,13 +3862,28 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
     return;
   }
   const pluginSettings = settings(s);
-  const clientDebugEnabled = pluginSettings.clientDebugEnabled;
+  const clientDebug = createClientDebug(pluginSettings.clientDebugEnabled);
   const rollsStatus = getRollsStatus(pluginSettings);
+  const companionsStatus = getCompanionsStatus(pluginSettings);
   const authUser = await peertubeHelpers.getUser();
   const userData = {
     username: (_a = authUser == null ? void 0 : authUser.username) != null ? _a : "",
     email: (_b = authUser == null ? void 0 : authUser.email) != null ? _b : ""
   };
+  registerHook({
+    target: "action:video-watch.video.loaded",
+    handler: async () => {
+      if (!companionsStatus.hasAtLeastOneCompanionEnabled)
+        return;
+      try {
+        setupResourceHints();
+        await loadArmanetPxl();
+        await handleCompanions(pluginSettings, clientDebug);
+      } catch (error) {
+        clientDebug("Companions", "Error handling companions:", error);
+      }
+    }
+  });
   registerHook({
     target: "action:video-watch.player.loaded",
     handler: async ({ videojs: videojs2, player, video }) => {
@@ -3758,29 +3892,28 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
         return;
       window.videojs = videojs2;
       window.player = player;
-      await loadContribAds(player);
       try {
-        await loadArmanetPxl();
-        if (typeof Armanet !== "undefined" && Armanet && typeof Armanet.getVastTag === "function") {
+        await Promise.all([
+          loadContribAds(player),
+          loadArmanetPxl()
+        ]);
+        if (typeof Armanet !== "undefined" && (Armanet == null ? void 0 : Armanet.getVastTag)) {
           const channelName = (_b2 = (_a2 = video == null ? void 0 : video.channel) == null ? void 0 : _a2.name) != null ? _b2 : "unknown";
           const channelAdUnit = (_f = (_e = (_d = (_c = video == null ? void 0 : video.pluginData) == null ? void 0 : _c.armanet) == null ? void 0 : _d.channel_adUnit) == null ? void 0 : _e.uuid) != null ? _f : null;
           const videoTags = (_g = video == null ? void 0 : video.tags) != null ? _g : [];
-          if (clientDebugEnabled) {
-            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] video", { video, videoTags });
-            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] channel", { channelName, channelAdUnit });
-            console.log("[ARMANET INTEGRATION PLUGIN] [debug] [player loaded] user", { userData });
-          }
+          clientDebug("PLAYER", "Player loaded", {
+            video,
+            videoTags,
+            channel: { channelName, channelAdUnit },
+            user: userData
+          });
           const vastSettings = createVastSettings(pluginSettings, Armanet, channelName, channelAdUnit, userData, videoTags);
           await buildVastPlayer(vastSettings, player);
         } else {
-          if (clientDebugEnabled) {
-            console.error("[ARMANET INTEGRATION PLUGIN] [debug] Armanet or Armanet.getVastTag is not available");
-          }
+          clientDebug("PLAYER", "Armanet or Armanet.getVastTag is not available");
         }
       } catch (error) {
-        if (clientDebugEnabled) {
-          console.error("[ARMANET INTEGRATION PLUGIN] [debug] Error in Armanet integration:", error);
-        }
+        clientDebug("PLAYER", "Error in Armanet integration:", error);
       }
     }
   });

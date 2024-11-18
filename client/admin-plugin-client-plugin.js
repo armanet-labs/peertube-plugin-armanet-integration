@@ -140,6 +140,13 @@ function handleSettingsVisibility(registerSettingsScript) {
         return true
       }
 
+      if (options.setting.name === 'armanet-companion-video-adunit' && options.formValues['armanet-companion-video-enabled'] === false) {
+        return true
+      }
+      if (options.setting.name === 'armanet-companion-sidebar-adunit' && options.formValues['armanet-companion-sidebar-enabled'] === false) {
+        return true
+      }
+
       if (options.setting.name === 'armanet-message-skip-countdown' && options.formValues['armanet-skip-time'] == 0) {
         return true
       }
