@@ -3602,7 +3602,7 @@ var DEFAULT_SKIP_MESSAGE = "Skip";
 var ARMANET_JS_URL = "https://assets.armanet.us/armanet-pxl.js";
 var scriptLoadPromise = null;
 var settings = (s) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
   return {
     preroll: {
       enabled: (_a = s["armanet-preroll-enabled"]) != null ? _a : false,
@@ -3611,29 +3611,31 @@ var settings = (s) => {
     midroll: {
       enabled: (_b = s["armanet-midroll-enabled"]) != null ? _b : false,
       adUnit: s["armanet-midroll-adunit"],
-      offset: (_c = s["armanet-midroll-offset"]) != null ? _c : "25%"
+      minTime: (_c = s["armanet-midroll-min-minutes"]) != null ? _c : 0,
+      offset: (_d = s["armanet-midroll-offset"]) != null ? _d : "25%"
     },
     postroll: {
-      enabled: (_d = s["armanet-postroll-enabled"]) != null ? _d : false,
-      adUnit: s["armanet-postroll-adunit"]
+      enabled: (_e = s["armanet-postroll-enabled"]) != null ? _e : false,
+      adUnit: s["armanet-postroll-adunit"],
+      minTime: (_f = s["armanet-postroll-min-minutes"]) != null ? _f : 0
     },
     companion: {
       video: {
-        enabled: (_e = s["armanet-companion-video-enabled"]) != null ? _e : false,
+        enabled: (_g = s["armanet-companion-video-enabled"]) != null ? _g : false,
         adUnit: s["armanet-companion-video-adunit"]
       },
       sidebar: {
-        enabled: (_f = s["armanet-companion-sidebar-enabled"]) != null ? _f : false,
+        enabled: (_h = s["armanet-companion-sidebar-enabled"]) != null ? _h : false,
         adUnit: s["armanet-companion-sidebar-adunit"]
       }
     },
-    embededEnabled: (_g = s["armanet-embeded-enabled"]) != null ? _g : true,
-    controlsEnabled: (_h = s["armanet-player-controls-enabled"]) != null ? _h : true,
-    skipTime: (_i = s["armanet-skip-time"]) != null ? _i : DEFAULT_SKIP_TIME,
-    messageSkipCountdown: (_j = s["armanet-message-skip-countdown"]) != null ? _j : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
-    messageSkip: (_k = s["armanet-message-skip"]) != null ? _k : DEFAULT_SKIP_MESSAGE,
+    embededEnabled: (_i = s["armanet-embeded-enabled"]) != null ? _i : true,
+    controlsEnabled: (_j = s["armanet-player-controls-enabled"]) != null ? _j : true,
+    skipTime: (_k = s["armanet-skip-time"]) != null ? _k : DEFAULT_SKIP_TIME,
+    messageSkipCountdown: (_l = s["armanet-message-skip-countdown"]) != null ? _l : DEFAULT_SKIP_COUNTDOWN_MESSAGE,
+    messageSkip: (_m = s["armanet-message-skip"]) != null ? _m : DEFAULT_SKIP_MESSAGE,
     messageRemainingTime: s["armanet-message-remainingTime"],
-    clientDebugEnabled: (_l = s["armanet-client-debug-enabled"]) != null ? _l : false
+    clientDebugEnabled: (_n = s["armanet-client-debug-enabled"]) != null ? _n : false
   };
 };
 var isArmanetPxlLoaded = () => {
@@ -3682,7 +3684,7 @@ var getRollsStatus = (pluginSettings2) => {
     hasAtLeastOneRollEnabled: Object.values(rolls).some(Boolean)
   });
 };
-var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit, userData2, videoTags) => {
+var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit, userData2, videoTags, video) => {
   const {
     skipTime,
     controlsEnabled,
@@ -3724,14 +3726,20 @@ var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit,
   };
   const rollsStatus2 = getRollsStatus(pluginSettings2);
   const rollConfigs = {
-    preroll: { offset: "pre", roll: "pre" },
-    midroll: { offset: pluginSettings2.midroll.offset, roll: "mid" },
-    postroll: { offset: "post", roll: "post" }
+    preroll: { offset: "pre", roll: "pre", minTime: 0 },
+    midroll: { offset: pluginSettings2.midroll.offset, roll: "mid", minTime: pluginSettings2.midroll.minTime },
+    postroll: { offset: "post", roll: "post", minTime: pluginSettings2.postroll.minTime }
   };
-  Object.entries(rollConfigs).forEach(([rollType, { offset, roll }]) => {
+  Object.entries(rollConfigs).forEach(([rollType, { offset, roll, minTime }]) => {
     if (rollsStatus2[rollType]) {
       const rollAdUnit = channelAdUnit || pluginSettings2[rollType].adUnit;
       if (rollAdUnit && offset) {
+        const videoDuration = video.duration;
+        console.log("parseInt(videoDuration/60)", parseInt(videoDuration / 60) < minTime);
+        console.log("minTime", minTime);
+        console.log("parseInt(videoDuration/60) < minTime", parseInt(videoDuration / 60) < minTime);
+        if (parseInt(videoDuration / 60) < minTime)
+          return;
         const vastUrl = getArmanetVastUrl(rollAdUnit, roll);
         if (clientDebugEnabled) {
           console.log("[ARMANET INTEGRATION PLUGIN] [debug] [createVastSettings] adding roll schedule", { rollAdUnit, offset, vastUrl });
@@ -3743,6 +3751,7 @@ var createVastSettings = (pluginSettings2, Armanet2, channelName, channelAdUnit,
       }
     }
   });
+  console.log("vastSettings shared", vastSettings);
   return vastSettings;
 };
 var buildVastPlayer = async (vastSettings, player) => {

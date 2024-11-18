@@ -124,10 +124,16 @@ function handleSettingsVisibility(registerSettingsScript) {
       if (options.setting.name === "armanet-midroll-adunit" && options.formValues["armanet-midroll-enabled"] === false) {
         return true;
       }
+      if (options.setting.name === "armanet-midroll-min-minutes" && options.formValues["armanet-midroll-enabled"] === false) {
+        return true;
+      }
       if (options.setting.name === "armanet-midroll-offset" && options.formValues["armanet-midroll-enabled"] === false) {
         return true;
       }
       if (options.setting.name === "armanet-postroll-adunit" && options.formValues["armanet-postroll-enabled"] === false) {
+        return true;
+      }
+      if (options.setting.name === "armanet-postroll-min-minutes" && options.formValues["armanet-postroll-enabled"] === false) {
         return true;
       }
       if (options.setting.name === "armanet-companion-video-adunit" && options.formValues["armanet-companion-video-enabled"] === false) {

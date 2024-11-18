@@ -171,6 +171,12 @@ function handleSettingsVisibility(registerSettingsScript) {
         return true;
       }
       if (
+        options.setting.name === 'armanet-midroll-min-minutes' &&
+        options.formValues['armanet-midroll-enabled'] === false
+      ) {
+        return true;
+      }
+      if (
         options.setting.name === 'armanet-midroll-offset' &&
         options.formValues['armanet-midroll-enabled'] === false
       ) {
@@ -179,6 +185,12 @@ function handleSettingsVisibility(registerSettingsScript) {
 
       if (
         options.setting.name === 'armanet-postroll-adunit' &&
+        options.formValues['armanet-postroll-enabled'] === false
+      ) {
+        return true;
+      }
+      if (
+        options.setting.name === 'armanet-postroll-min-minutes' &&
         options.formValues['armanet-postroll-enabled'] === false
       ) {
         return true;
