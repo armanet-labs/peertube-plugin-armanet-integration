@@ -3893,10 +3893,7 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
       window.videojs = videojs2;
       window.player = player;
       try {
-        await Promise.all([
-          loadContribAds(player),
-          loadArmanetPxl()
-        ]);
+        await Promise.all([loadContribAds(player), loadArmanetPxl()]);
         if (typeof Armanet !== "undefined" && (Armanet == null ? void 0 : Armanet.getVastTag)) {
           const channelName = (_b2 = (_a2 = video == null ? void 0 : video.channel) == null ? void 0 : _a2.name) != null ? _b2 : "unknown";
           const channelAdUnit = (_f = (_e = (_d = (_c = video == null ? void 0 : video.pluginData) == null ? void 0 : _c.armanet) == null ? void 0 : _d.channel_adUnit) == null ? void 0 : _e.uuid) != null ? _f : null;

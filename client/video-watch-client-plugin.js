@@ -46,7 +46,7 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
       } catch (error) {
         clientDebug('Companions', 'Error handling companions:', error);
       }
-    }
+    },
   });
 
   registerHook({
@@ -58,10 +58,7 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
       window.player = player;
 
       try {
-        await Promise.all([
-          loadContribAds(player),
-          loadArmanetPxl()
-        ]);
+        await Promise.all([loadContribAds(player), loadArmanetPxl()]);
 
         if (typeof Armanet !== 'undefined' && Armanet?.getVastTag) {
           const channelName = video?.channel?.name ?? 'unknown';
@@ -73,7 +70,7 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
             video,
             videoTags,
             channel: { channelName, channelAdUnit },
-            user: userData
+            user: userData,
           });
 
           const vastSettings = createVastSettings(
@@ -86,7 +83,10 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
           );
           await buildVastPlayer(vastSettings, player);
         } else {
-          clientDebug('PLAYER', 'Armanet or Armanet.getVastTag is not available');
+          clientDebug(
+            'PLAYER',
+            'Armanet or Armanet.getVastTag is not available',
+          );
         }
       } catch (error) {
         clientDebug('PLAYER', 'Error in Armanet integration:', error);
