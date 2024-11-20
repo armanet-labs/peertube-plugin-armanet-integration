@@ -52,6 +52,7 @@ function register({ registerHook, peertubeHelpers }) {
               channelAdUnit,
               userData,
               videoTags,
+              video,
             );
 
             await buildVastPlayer(vastSettings, player);

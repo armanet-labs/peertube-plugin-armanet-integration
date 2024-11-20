@@ -2,6 +2,8 @@ import {
   settings,
   loadArmanetPxl,
   setupResourceHints,
+  cleanupCompanions,
+  cleanupVastElements,
   loadContribAds,
   getRollsStatus,
   getCompanionsStatus,
@@ -9,7 +11,6 @@ import {
   createVastSettings,
   buildVastPlayer,
   createClientDebug,
-  cleanupCompanions,
 } from '../lib/shared.js';
 
 function register({ registerHook, peertubeHelpers }) {
@@ -38,22 +39,26 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
 
   registerHook({
     target: 'action:router.navigation-end',
-    handler: async ({path}) => {
+    handler: async ({ path }) => {
       if (!path.startsWith('/w/')) return;
 
-      if (window.player.ads.inAdBreak()) {
-        window.player.ads.endLinearAdMode();
-        const vastBlocker = document.querySelectorAll('.vast-blocker');
-        vastBlocker.forEach(holder => holder.remove());
+      if (typeof window.player?.ads?.inAdBreak === 'function') {
+        if (window.player.ads.inAdBreak()) {
+          window.player.ads.endLinearAdMode();
+          cleanupVastElements();
+        }
+      } else if (window.player?.ads?._inLinearAdMode !== undefined) {
+        if (window.player.ads._inLinearAdMode) {
+          window.player.ads.endLinearAdMode();
+          cleanupVastElements();
+        }
       }
 
-      cleanupCompanions();
-      window.dispatchEvent(new Event('loadAds'));
-      window.Armanet = undefined;
-      window.scriptLoadPromise = null;
-      window.videojs = undefined;
-      window.player = undefined;
-    }
+      if (companionsStatus.hasAtLeastOneCompanionEnabled) {
+        cleanupCompanions();
+        window.dispatchEvent(new Event('loadAds'));
+      }
+    },
   });
 
   registerHook({
