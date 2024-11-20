@@ -58,11 +58,6 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
         cleanupCompanions();
         window.dispatchEvent(new Event('loadAds'));
       }
-
-      // window.Armanet = undefined;
-      // window.scriptLoadPromise = null;
-      // window.videojs = undefined;
-      // window.player = undefined;
     },
   });
 
