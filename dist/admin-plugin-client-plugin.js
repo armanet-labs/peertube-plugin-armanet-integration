@@ -26,9 +26,8 @@ async function handleChannelsList(registerHook, peertubeHelpers, registerSetting
       handleSettingsVisibility(registerSettingsScript);
       const tableBody = document.querySelector(".armanet-channels-list tbody");
       const syncChannelsButton = document.querySelector(".armanet-button-sync-channels");
-      if (!tableBody) {
+      if (!tableBody)
         return;
-      }
       const channelsListEndpoint = peertubeHelpers.getBaseRouterRoute() + "/get-channels";
       const channelsSyncEndpoint = peertubeHelpers.getBaseRouterRoute() + "/sync-channels";
       try {
