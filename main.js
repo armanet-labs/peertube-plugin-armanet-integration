@@ -114,6 +114,10 @@ async function register({
       target: 'action:api.video-channel.deleted',
       handler: handleChannelDeleted,
     },
+    {
+      target: 'action:api.user.created',
+      handler: handleUserCreatedByAdmin,
+    },
   ];
 
   hooks.forEach(({ target, handler }) => registerHook({ target, handler }));
@@ -148,28 +152,69 @@ async function register({
     return video;
   }
 
-  async function handleChannelCreated({ videoChannel }) {
-    await handleChannelOperation(videoChannel, 'created');
+  async function handleChannelCreated({ videoChannel, req, res }) {
+    await handleChannelOperation(videoChannel, res, 'created');
+  }
+
+  async function handleUserCreatedByAdmin({ user, req, res }) {
+    const channelName = req?.body?.channelName;
+    const userVideoQuota = req?.body?.videoQuota;
+
+    if (channelName && userVideoQuota) {
+      await handleUserOperation(channelName, userVideoQuota, 'created');
+    }
   }
 
   async function handleChannelUpdated({ videoChannel }) {
-    await handleChannelOperation(videoChannel, 'updated');
+    await handleChannelOperation(videoChannel, res, 'updated');
   }
 
   async function handleChannelDeleted({ videoChannel }) {
-    await handleChannelOperation(videoChannel, 'deleted');
+    await handleChannelOperation(videoChannel, res, 'deleted');
   }
 
-  const handleChannelOperation = async (videoChannel, operation) => {
+  const handleUserOperation = async (channelName, userVideoQuota, operation) => {
+    try {
+      const channelData = await getStorageData(channelName);
+
+      loggerArmanet.info('[handleUserOperation] running operation:', {
+        apiKey: apiKey,
+        operation: operation,
+        channelName: channelName,
+        channelData: channelData?.uuid,
+        userVideoQuota: userVideoQuota,
+        tags: ['armanet'],
+      });
+
+      if (operation === 'created') {
+        if (userVideoQuota !== -1) return;
+        await createOrUpdateArmanetChannelAdUnit(channelName);
+      } else {
+        if (operation === 'updated' && channelData) return;
+        await createOrUpdateArmanetChannelAdUnit(channelName);
+      }
+    } catch (error) {
+      loggerArmanet.info('[handleUserOperation] error:', {
+        error,
+        apiKey: apiKey,
+        operation: operation,
+        tags: ['armanet'],
+      });
+    }
+  };
+
+  const handleChannelOperation = async (videoChannel, res, operation) => {
     try {
       const channelName = getChannelName(videoChannel);
       const channelData = await getStorageData(channelName);
+      const userVideoQuota = getUserVideoQuota(res);
 
       loggerArmanet.info('[handleChannelOperation] running operation:', {
         apiKey: apiKey,
         operation: operation,
         channelName: channelName,
         channelData: channelData?.uuid,
+        userVideoQuota: userVideoQuota,
         tags: ['armanet'],
       });
 
@@ -178,6 +223,7 @@ async function register({
         await deleteArmanetChannelAdUnit(channelName, channelData.uuid);
       } else {
         if (operation === 'updated' && channelData) return;
+        if (userVideoQuota !== -1) return;
         await createOrUpdateArmanetChannelAdUnit(channelName);
       }
     } catch (error) {
@@ -268,6 +314,9 @@ async function register({
 
   const getChannelName = (videoChannel) =>
     videoChannel?.Actor?.preferredUsername;
+
+  const getUserVideoQuota = (res) =>
+    res?.locals?.oauth?.token?.User?.videoQuota;
 
   const getStorageKey = (name) => `${adUnitStoragePrefix}${name}`;
 

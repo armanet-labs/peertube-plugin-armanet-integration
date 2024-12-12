@@ -17,9 +17,7 @@ async function handleChannelsList(
         '.armanet-button-sync-channels',
       );
 
-      if (!tableBody) {
-        return;
-      }
+      if (!tableBody) return;
 
       const channelsListEndpoint =
         peertubeHelpers.getBaseRouterRoute() + '/get-channels';
