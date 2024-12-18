@@ -12,6 +12,77 @@ async function handleChannelsList(
     handler: async ({ ...rest }) => {
       handleSettingsVisibility(registerSettingsScript);
 
+      const multiSelect = document.querySelector('.armanet-multi-select');
+      const selectHeader = multiSelect.querySelector('.select-header');
+      let selectOptions = multiSelect.querySelector('.select-options');
+      const excludedChannelsInput = document.getElementById(
+        'armanet-excluded-channels-data',
+      );
+
+      selectOptions.innerHTML = `<label><input type="checkbox" value="" />Loading...</label>`;
+
+      const fillExcludedSelect = (channelsList) => {
+        let result = '';
+        for (const channel of channelsList) {
+          const { channelName, channelDisplayName } = channel;
+          result += `
+            <label>
+              <input type="checkbox" value="${channelName}" />
+              ${channelName}
+              <a href="/video-channels/${channelName}" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" stroke-width="2">
+                  <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6"></path>
+                  <path d="M11 13l9 -9"></path>
+                  <path d="M15 4h5v5"></path>
+                </svg>
+              </a>
+            </label>`;
+        }
+        selectOptions.innerHTML = result;
+
+        initializeState();
+      };
+
+      const initializeState = () => {
+        const initialValue = excludedChannelsInput.value;
+        const selectedValues = initialValue.split(',').map((val) => val.trim());
+
+        selectHeader.textContent = selectedValues.length
+          ? selectedValues.join(', ')
+          : 'Select Channels';
+
+        selectOptions
+          .querySelectorAll("input[type='checkbox']")
+          .forEach((checkbox) => {
+            checkbox.checked = selectedValues.includes(checkbox.value);
+          });
+      };
+
+      selectHeader.addEventListener('click', () => {
+        const isVisible = selectOptions.style.display === 'block';
+        selectOptions.style.display = isVisible ? 'none' : 'block';
+      });
+
+      const updateSelected = () => {
+        const selectedValues = Array.from(
+          selectOptions.querySelectorAll('input:checked'),
+        ).map((checkbox) => checkbox.value);
+        const selectedText = selectedValues.join(', ');
+        selectHeader.textContent = selectedText || 'Select Channels';
+        excludedChannelsInput.value = selectedText;
+
+        const event = new Event('input', { bubbles: true });
+        excludedChannelsInput.dispatchEvent(event);
+      };
+
+      selectOptions.addEventListener('change', updateSelected);
+
+      document.addEventListener('click', (event) => {
+        if (!multiSelect.contains(event.target)) {
+          selectOptions.style.display = 'none';
+        }
+      });
+
       const tableBody = document.querySelector('.armanet-channels-list tbody');
       const syncChannelsButton = document.querySelector(
         '.armanet-button-sync-channels',
@@ -40,6 +111,7 @@ async function handleChannelsList(
           body: JSON.stringify(data),
         });
         const channelsList = await channelsListFetch.json();
+        fillExcludedSelect(channelsList);
 
         const unsyncedChannels = channelsList.filter(
           (item) => item.adUnit === null,
@@ -356,6 +428,9 @@ function handleSettingsVisibility(registerSettingsScript) {
         options.setting.name === 'armanet-message-skip' &&
         options.formValues['armanet-skip-time'] == 0
       ) {
+        return true;
+      }
+      if (options.setting.name === 'armanet-excluded-channels-data') {
         return true;
       }
 
