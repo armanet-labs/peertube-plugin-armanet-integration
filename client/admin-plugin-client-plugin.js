@@ -23,6 +23,11 @@ async function handleChannelsList(
         peertubeHelpers.getBaseRouterRoute() + '/get-channels';
       const channelsSyncEndpoint =
         peertubeHelpers.getBaseRouterRoute() + '/sync-channels';
+      const channelUnsyncEndpoint =
+        peertubeHelpers.getBaseRouterRoute() + '/unsync-channel';
+      const channelSyncSingleEndpoint =
+        peertubeHelpers.getBaseRouterRoute() + '/sync-single-channel';
+
       try {
         const chs = await fetch('/api/v1/video-channels?count=100', {
           method: 'GET',
@@ -49,19 +54,137 @@ async function handleChannelsList(
           let newTableContent = '';
 
           for (const channel of channelsList) {
-            const { channelName, channelUrl, channelDisplayName, adUnit } =
-              channel;
-            const status = adUnit !== null ? '✅ Yes' : '❌ No';
-            const uuid = adUnit?.uuid || '';
+            const {
+              channelName,
+              channelUrl,
+              channelDisplayName,
+              adUnit,
+              actorName,
+              channelOwner,
+              videoQuota,
+            } = channel;
+
+            if (videoQuota !== -1 && !adUnit?.uuid) {
+              continue;
+            }
+
+            const hasValidAdUnit = adUnit && adUnit.uuid;
+            const status = hasValidAdUnit ? '✅ Yes' : '❌ No';
+            const uuid = hasValidAdUnit || '';
+
+            const actions = hasValidAdUnit
+              ? `<div class="armanet-button armanet-button-unsync" data-channel-name="${channelName}" data-channel-uuid="${uuid}">
+                 Unsync
+                </div>`
+              : `<div class="armanet-button armanet-button-sync-single" data-channel-name="${channelName}">
+                  Sync
+                </div>`;
             newTableContent += `
               <tr>
                 <td><a href="${channelUrl}">${channelName}</a> <i>(${channelDisplayName})</i></td>
+                <td><a href="/a/${channelOwner}">${channelOwner}</a></td>
+                <td>${videoQuota === -1 ? 'Unlimited' : formatBytes(videoQuota)}</td>
                 <td>${status}</td>
                 <td>${uuid}</td>
+                <td>${actions}</td>
               </tr>`;
           }
 
           tableBody.innerHTML = newTableContent;
+
+          tableBody.addEventListener('click', async (e) => {
+            const unsyncButton = e.target.closest('.armanet-button-unsync');
+            const syncSingleButton = e.target.closest(
+              '.armanet-button-sync-single',
+            );
+
+            if (syncSingleButton) {
+              const channelName = syncSingleButton.dataset.channelName;
+
+              try {
+                syncSingleButton.style.backgroundColor = '#8c8c8c';
+                syncSingleButton.style.pointerEvents = 'none';
+                syncSingleButton.textContent = 'Syncing...';
+
+                const channelSyncSingleFetch = await fetch(
+                  channelSyncSingleEndpoint,
+                  {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channelName: channelName }),
+                  },
+                );
+                const channelSyncSingleFetchResponse =
+                  await channelSyncSingleFetch.json();
+
+                syncSingleButton.textContent = 'Synced';
+
+                const row = e.target.parentElement.parentElement;
+                const tdStatus = row.children[3];
+                tdStatus.textContent = '✅ Yes';
+                const tdUuid = row.children[4];
+                tdUuid.textContent = channelSyncSingleFetchResponse?.uuid;
+
+                peertubeHelpers.notifier.success(
+                  `Channel ${channelName} synced successfully`,
+                  'Channel Sync',
+                  7000,
+                );
+              } catch (error) {
+                console.error('Error syncing channel:', error);
+                syncSingleButton.textContent = 'Sync';
+                peertubeHelpers.notifier.error(
+                  `Failed to sync channel ${channelName}`,
+                  'Channel Sync',
+                  7000,
+                );
+              }
+            }
+
+            if (unsyncButton) {
+              const channelName = unsyncButton.dataset.channelName;
+              const channelUuid = unsyncButton.dataset.channelUuid;
+
+              try {
+                unsyncButton.style.pointerEvents = 'none';
+                unsyncButton.style.backgroundColor = '#8c8c8c';
+                unsyncButton.textContent = 'Unsyncing...';
+
+                const channelUnsyncFetch = await fetch(channelUnsyncEndpoint, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    channelName: channelName,
+                    channelUuid: channelUuid,
+                  }),
+                });
+                const channelUnsyncFetchResponse =
+                  await channelUnsyncFetch.json();
+
+                unsyncButton.textContent = 'Unsynced';
+
+                const row = e.target.parentElement.parentElement;
+                const tdStatus = row.children[3];
+                tdStatus.textContent = '❌ No';
+                const tdUuid = row.children[4];
+                tdUuid.textContent = '';
+
+                peertubeHelpers.notifier.success(
+                  `Channel ${channelName} unsynced successfully`,
+                  'Channel Unsync',
+                  7000,
+                );
+              } catch (error) {
+                unsyncButton.textContent = 'Unsync';
+                console.error('Error unsyncing channel:', error);
+                peertubeHelpers.notifier.error(
+                  `Failed to unsync channel ${channelName}`,
+                  'Channel Unsync',
+                  7000,
+                );
+              }
+            }
+          });
 
           if (syncChannelsButton && unsyncedChannels > 0) {
             const submitButton = document.querySelector('input[type="submit"]');
@@ -92,8 +215,9 @@ async function handleChannelsList(
           console.error('No channel data found in storageManager.');
         }
 
-        const syncChannels = async (channelsListEndpoint, channelsData) => {
-          const syncFecth = await fetch(channelsListEndpoint, {
+        const syncChannels = async (channelsSyncEndpoint, channelsData) => {
+          console.log('trying to sync', channelsData);
+          const syncFecth = await fetch(channelsSyncEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(channelsData),
@@ -124,6 +248,21 @@ async function handleChannelsList(
             console.error('could not sync channels');
           }
         };
+
+        function formatBytes(bytes, decimals = 2) {
+          if (bytes === -1) return 'Unlimited';
+          if (bytes === 0) return '0 Bytes';
+
+          const k = 1024;
+          const dm = decimals < 0 ? 0 : decimals;
+          const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+          return (
+            parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
+          );
+        }
       } catch (err) {
         console.error('error attempting to fetch channels', err);
       }

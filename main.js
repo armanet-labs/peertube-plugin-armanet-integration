@@ -3,6 +3,7 @@ const adUnitStoragePrefix = 'ch_';
 const armanetAdUnitUrl = 'https://api.armanet.us/dynamic-ad-unit';
 let serverDebugEnabled;
 let loggerArmanet;
+const loggerTag = 'armanet';
 let apiKey;
 
 async function register({
@@ -37,15 +38,51 @@ async function register({
   router.use('/get-channels', async (req, res) => {
     const channels = req.body.data;
 
+    const models = await peertubeHelpers.database.query(`
+      SELECT
+        "videoChannel"."name" as "channelName",
+        "user"."videoQuota" as "videoQuota",
+        "user"."videoQuotaDaily" as "videoQuotaDaily",
+        "user"."username" as "channelOwner",
+        "actor"."preferredUsername" as "actorName"
+      FROM "videoChannel"
+      JOIN "account" ON "videoChannel"."accountId" = "account"."id"
+      JOIN "actor" ON "videoChannel"."actorId" = "actor"."id"
+      JOIN "user" ON "account"."userId" = "user"."id"
+    `);
+
+    const quotaData = models[0];
     const channelData = [];
 
     for (const channel of channels) {
       const channelName = channel.name;
       const channelUrl = channel.url;
       const channelDisplayName = channel.displayName;
-      const adUnit = await getStorageData(channelName);
+      const storedAdUnit = await getStorageData(channelName);
 
-      channelData.push({ channelName, channelUrl, channelDisplayName, adUnit });
+      const adUnit = storedAdUnit && storedAdUnit.uuid ? storedAdUnit : null;
+
+      const channelInfo = quotaData.find((m) => m.actorName === channelName);
+      const videoQuota = channelInfo ? Number(channelInfo.videoQuota) : null;
+
+      // Return only channels with unlimited video quota or with an ad unit
+      if (videoQuota !== -1 && adUnit === null) {
+        continue;
+      }
+
+      channelData.push({
+        channelName,
+        channelUrl,
+        channelDisplayName,
+        adUnit,
+
+        videoQuota: channelInfo ? Number(channelInfo.videoQuota) : null,
+        videoQuotaDaily: channelInfo
+          ? Number(channelInfo.videoQuotaDaily)
+          : null,
+        channelOwner: channelInfo ? channelInfo.channelOwner : 'N/A',
+        actorName: channelInfo ? channelInfo.actorName : 'N/A',
+      });
     }
 
     return res.status(200).send(channelData);
@@ -55,7 +92,7 @@ async function register({
     const channels = req.body;
     loggerArmanet.info('sync channels', {
       channels: channels,
-      tags: ['armanet'],
+      tags: [loggerTag],
     });
 
     const successData = [];
@@ -76,13 +113,13 @@ async function register({
         loggerArmanet.info('[sync-channels] synced channel', {
           channelName: channelName,
           response: JSON.stringify(response, null, 2),
-          tags: ['armanet'],
+          tags: [loggerTag],
         });
       } else {
         errorData.push({ channelName });
         loggerArmanet.info('[sync-channels] failed to sync channel', {
           channelName: channelName,
-          tags: ['armanet'],
+          tags: [loggerTag],
         });
       }
     }
@@ -91,10 +128,62 @@ async function register({
       successData,
       errorData,
       syncCount,
-      tags: ['armanet'],
+      tags: [loggerTag],
     });
 
     return res.status(200).send({ successData, errorData, syncCount });
+  });
+
+  router.use('/unsync-channel', async (req, res) => {
+    const channel = req.body;
+    loggerArmanet.info('unsync channel', {
+      channel: channel,
+      tags: [loggerTag],
+    });
+
+    const channelName = channel.channelName;
+    const channelUuid = channel.channelUuid;
+
+    if (!channelUuid) return;
+
+    const response = await deleteArmanetChannelAdUnit(channelName, channelUuid);
+
+    loggerArmanet.info('[unsync-channel] done', {
+      channelName: channelName,
+      tags: [loggerTag],
+    });
+
+    return res.status(200).send({ channelName });
+  });
+
+  router.use('/sync-single-channel', async (req, res) => {
+    const channel = req.body;
+    loggerArmanet.info('sync single channel', {
+      channel: channel,
+      tags: [loggerTag],
+    });
+
+    const channelName = channel.channelName;
+
+    const response = await createOrUpdateArmanetChannelAdUnit(channelName);
+
+    if (response) {
+      loggerArmanet.info('[sync-single-channel] synced channel', {
+        channelName: channelName,
+        response: JSON.stringify(response, null, 2),
+        tags: [loggerTag],
+      });
+      return res
+        .status(200)
+        .send({ channelName: channelName, uuid: response?.uuid });
+    } else {
+      loggerArmanet.info('[sync-single-channel] failed to sync channel', {
+        channelName: channelName,
+        tags: [loggerTag],
+      });
+    }
+
+    return res.status(200).send({ channelName });
   });
 
   const hooks = [
@@ -146,7 +235,7 @@ async function register({
       channelName: channelName,
       storageDataResult: result,
       videoPluginData: video?.pluginData?.armanet?.channel_adUnit,
-      tags: ['armanet'],
+      tags: [loggerTag],
     });
 
     return video;
@@ -173,7 +262,11 @@ async function register({
     await handleChannelOperation(videoChannel, res, 'deleted');
   }
 
-  const handleUserOperation = async (channelName, userVideoQuota, operation) => {
+  const handleUserOperation = async (
+    channelName,
+    userVideoQuota,
+    operation,
+  ) => {
     try {
       const channelData = await getStorageData(channelName);
 
@@ -183,7 +276,7 @@ async function register({
         channelName: channelName,
         channelData: channelData?.uuid,
         userVideoQuota: userVideoQuota,
-        tags: ['armanet'],
+        tags: [loggerTag],
       });
 
       if (operation === 'created') {
@@ -198,7 +291,7 @@ async function register({
         error,
         apiKey: apiKey,
         operation: operation,
-        tags: ['armanet'],
+        tags: [loggerTag],
       });
     }
   };
@@ -215,7 +308,7 @@ async function register({
         channelName: channelName,
         channelData: channelData?.uuid,
         userVideoQuota: userVideoQuota,
-        tags: ['armanet'],
+        tags: [loggerTag],
       });
 
       if (operation === 'deleted') {
@@ -231,7 +324,7 @@ async function register({
         error,
         apiKey: apiKey,
         operation: operation,
-        tags: ['armanet'],
+        tags: [loggerTag],
       });
     }
   };
@@ -242,7 +335,7 @@ async function register({
     loggerArmanet.info('[createOrUpdateArmanetChannelAdUnit]', {
       channelName: channelName,
       fetchResponseUUID: response?.uuid,
-      tags: ['armanet'],
+      tags: [loggerTag],
     });
     return response;
   };
@@ -254,11 +347,14 @@ async function register({
       `${armanetAdUnitUrl}/${uuid}`,
     );
 
-    if (response)
+    if (response) {
+      await setStorageData(channelName, {});
+
       loggerArmanet.info('[deleteArmanetChannelAdUnit] fetch Response', {
         response: JSON.stringify(response, null, 2),
-        tags: ['armanet'],
+        tags: [loggerTag],
       });
+    }
   };
 
   const fetchArmanetChannelAdUnit = async (
@@ -279,7 +375,7 @@ async function register({
       method: method,
       url: url,
       apiKey: apiKey,
-      tags: ['armanet'],
+      tags: [loggerTag],
     });
 
     const response = await fetch(url, {
@@ -297,7 +393,7 @@ async function register({
       loggerArmanet.info('[fetchArmanetChannelAdUnit] fetch error', {
         errorMessage: errorMessage,
         status: response.status,
-        tags: ['armanet'],
+        tags: [loggerTag],
       });
       return null;
     }
@@ -306,7 +402,7 @@ async function register({
     loggerArmanet.info('[fetchArmanetChannelAdUnit] fetch success', {
       jsonMessage: jsonMessage,
       status: response.status,
-      tags: ['armanet'],
+      tags: [loggerTag],
     });
 
     return jsonMessage;
@@ -412,7 +508,7 @@ async function updateSettings(loggerArmanet, newSettings) {
     loggerArmanet.info('[updateSettings] API key not provided', {
       apiKey: apiKey,
       newApiKey: newApiKey,
-      tags: ['armanet'],
+      tags: [loggerTag],
     });
     apiKey = undefined;
   }
@@ -421,7 +517,7 @@ async function updateSettings(loggerArmanet, newSettings) {
     loggerArmanet.info('[updateSettings] API key updated', {
       apiKey: apiKey,
       newApiKey: newApiKey,
-      tags: ['armanet'],
+      tags: [loggerTag],
     });
     apiKey = newApiKey;
   }
