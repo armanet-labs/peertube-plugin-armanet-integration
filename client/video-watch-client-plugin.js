@@ -63,8 +63,11 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
 
   registerHook({
     target: 'action:video-watch.video.loaded',
-    handler: async () => {
+    handler: async ({ video }) => {
       if (!companionsStatus.hasAtLeastOneCompanionEnabled) return;
+
+      const channelIsExcluded = video?.pluginData?.armanet?.is_excluded;
+      if (channelIsExcluded) return;
 
       try {
         if (!resourceHintsConfigured) {
@@ -86,6 +89,9 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
 
       window.videojs = videojs;
       window.player = player;
+
+      const channelIsExcluded = video?.pluginData?.armanet?.is_excluded;
+      if (channelIsExcluded) return;
 
       try {
         await Promise.all([loadContribAds(player), loadArmanetPxl()]);

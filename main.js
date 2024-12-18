@@ -28,11 +28,12 @@ async function register({
 
   loggerArmanet.setDebugEnabled(serverDebugEnabled);
 
-  const settings = await getAllSettings(settingsManager);
+  let settings = await getAllSettings(settingsManager);
   await updateSettings(loggerArmanet, settings);
 
   settingsManager.onSettingsChange(async (newSettings) => {
     await updateSettings(loggerArmanet, newSettings);
+    settings = await updateSettingsContent(newSettings);
   });
 
   router.use('/get-channels', async (req, res) => {
@@ -222,6 +223,11 @@ async function register({
       return video;
     }
 
+    const excludedChannels = settings['armanet-excluded-channels-data'] || '';
+    const excludedChannelsArray = excludedChannels
+      .split(',')
+      .map((channel) => channel.trim());
+
     if (!video.pluginData) video.pluginData = {};
 
     const channelName = getChannelName(video.VideoChannel);
@@ -229,12 +235,16 @@ async function register({
 
     if (!result) return video;
 
-    video.pluginData['armanet'] = { channel_adUnit: result };
+    video.pluginData['armanet'] = {
+      channel_adUnit: result,
+      is_excluded: excludedChannelsArray.includes(channelName),
+    };
 
     loggerArmanet.info('[handleVideoGet]:', {
       channelName: channelName,
       storageDataResult: result,
       videoPluginData: video?.pluginData?.armanet?.channel_adUnit,
+      excludedChannels: excludedChannelsArray,
       tags: [loggerTag],
     });
 
@@ -486,6 +496,8 @@ function getAllSettings(settingsManager) {
     'armanet-message-skip-countdown',
     'armanet-message-skip',
     'armanet-message-remainingTime',
+    'armanet-excluded-channels',
+    'armanet-excluded-channels-data',
     'armanet-server-debug-enabled',
     'armanet-client-debug-enabled',
   ]);
@@ -521,4 +533,47 @@ async function updateSettings(loggerArmanet, newSettings) {
     });
     apiKey = newApiKey;
   }
+}
+
+async function updateSettingsContent(newSettings) {
+  let updates;
+  updates['armanet-preroll-enabled'] = newSettings['armanet-preroll-enabled'];
+  updates['armanet-preroll-adunit'] = newSettings['armanet-preroll-adunit'];
+  updates['armanet-midroll-enabled'] = newSettings['armanet-midroll-enabled'];
+  updates['armanet-midroll-adunit'] = newSettings['armanet-midroll-adunit'];
+  updates['armanet-midroll-min-minutes'] =
+    newSettings['armanet-midroll-min-minutes'];
+  updates['armanet-midroll-offset'] = newSettings['armanet-midroll-offset'];
+  updates['armanet-postroll-enabled'] = newSettings['armanet-postroll-enabled'];
+  updates['armanet-postroll-adunit'] = newSettings['armanet-postroll-adunit'];
+  updates['armanet-postroll-min-minutes'] =
+    newSettings['armanet-postroll-min-minutes'];
+  updates['armanet-companion-video-enabled'] =
+    newSettings['armanet-companion-video-enabled'];
+  updates['armanet-companion-video-adunit'] =
+    newSettings['armanet-companion-video-adunit'];
+  updates['armanet-companion-sidebar-enabled'] =
+    newSettings['armanet-companion-sidebar-enabled'];
+  updates['armanet-companion-sidebar-adunit'] =
+    newSettings['armanet-companion-sidebar-adunit'];
+  updates['armanet-embeded-enabled'] = newSettings['armanet-embeded-enabled'];
+  updates['armanet-player-controls-enabled'] =
+    newSettings['armanet-player-controls-enabled'];
+  updates['armanet-api-key'] = newSettings['armanet-api-key'];
+  updates['armanet-skip-time'] = newSettings['armanet-skip-time'];
+  updates['armanet-message-skip-countdown'] =
+    newSettings['armanet-message-skip-countdown'];
+  updates['armanet-message-skip'] = newSettings['armanet-message-skip'];
+  updates['armanet-message-remainingTime'] =
+    newSettings['armanet-message-remainingTime'];
+  updates['armanet-excluded-channels'] =
+    newSettings['armanet-excluded-channels'];
+  updates['armanet-excluded-channels-data'] =
+    newSettings['armanet-excluded-channels-data'];
+  updates['armanet-server-debug-enabled'] =
+    newSettings['armanet-server-debug-enabled'];
+  updates['armanet-client-debug-enabled'] =
+    newSettings['armanet-client-debug-enabled'];
+
+  return updates;
 }

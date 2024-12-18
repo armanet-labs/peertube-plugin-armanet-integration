@@ -3920,8 +3920,12 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
   });
   registerHook({
     target: "action:video-watch.video.loaded",
-    handler: async () => {
+    handler: async ({ video }) => {
+      var _a2, _b2;
       if (!companionsStatus.hasAtLeastOneCompanionEnabled)
+        return;
+      const channelIsExcluded = (_b2 = (_a2 = video == null ? void 0 : video.pluginData) == null ? void 0 : _a2.armanet) == null ? void 0 : _b2.is_excluded;
+      if (channelIsExcluded)
         return;
       try {
         if (!resourceHintsConfigured) {
@@ -3938,17 +3942,20 @@ async function initArmanetIntegration(registerHook, peertubeHelpers) {
   registerHook({
     target: "action:video-watch.player.loaded",
     handler: async ({ videojs: videojs2, player, video }) => {
-      var _a2, _b2, _c, _d, _e, _f, _g;
+      var _a2, _b2, _c, _d, _e, _f, _g, _h, _i;
       if (!rollsStatus.hasAtLeastOneRollEnabled)
         return;
       window.videojs = videojs2;
       window.player = player;
+      const channelIsExcluded = (_b2 = (_a2 = video == null ? void 0 : video.pluginData) == null ? void 0 : _a2.armanet) == null ? void 0 : _b2.is_excluded;
+      if (channelIsExcluded)
+        return;
       try {
         await Promise.all([loadContribAds(player), loadArmanetPxl()]);
         if (typeof Armanet !== "undefined" && (Armanet == null ? void 0 : Armanet.getVastTag)) {
-          const channelName = (_b2 = (_a2 = video == null ? void 0 : video.channel) == null ? void 0 : _a2.name) != null ? _b2 : "unknown";
-          const channelAdUnit = (_f = (_e = (_d = (_c = video == null ? void 0 : video.pluginData) == null ? void 0 : _c.armanet) == null ? void 0 : _d.channel_adUnit) == null ? void 0 : _e.uuid) != null ? _f : null;
-          const videoTags = (_g = video == null ? void 0 : video.tags) != null ? _g : [];
+          const channelName = (_d = (_c = video == null ? void 0 : video.channel) == null ? void 0 : _c.name) != null ? _d : "unknown";
+          const channelAdUnit = (_h = (_g = (_f = (_e = video == null ? void 0 : video.pluginData) == null ? void 0 : _e.armanet) == null ? void 0 : _f.channel_adUnit) == null ? void 0 : _g.uuid) != null ? _h : null;
+          const videoTags = (_i = video == null ? void 0 : video.tags) != null ? _i : [];
           clientDebug("PLAYER", "Player loaded", {
             video,
             videoTags,
