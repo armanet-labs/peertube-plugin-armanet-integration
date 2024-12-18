@@ -30,7 +30,20 @@ async function handleChannelsList(registerHook, peertubeHelpers, registerSetting
         return;
       const channelsListEndpoint = peertubeHelpers.getBaseRouterRoute() + "/get-channels";
       const channelsSyncEndpoint = peertubeHelpers.getBaseRouterRoute() + "/sync-channels";
+      const channelUnsyncEndpoint = peertubeHelpers.getBaseRouterRoute() + "/unsync-channel";
+      const channelSyncSingleEndpoint = peertubeHelpers.getBaseRouterRoute() + "/sync-single-channel";
       try {
+        let formatBytes = function(bytes, decimals = 2) {
+          if (bytes === -1)
+            return "Unlimited";
+          if (bytes === 0)
+            return "0 Bytes";
+          const k = 1024;
+          const dm = decimals < 0 ? 0 : decimals;
+          const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+        };
         const chs = await fetch("/api/v1/video-channels?count=100", {
           method: "GET"
         });
@@ -49,17 +62,92 @@ async function handleChannelsList(registerHook, peertubeHelpers, registerSetting
           tableBody.innerHTML = "";
           let newTableContent = "";
           for (const channel of channelsList) {
-            const { channelName, channelUrl, channelDisplayName, adUnit } = channel;
-            const status = adUnit !== null ? "\u2705 Yes" : "\u274C No";
-            const uuid = (adUnit == null ? void 0 : adUnit.uuid) || "";
+            const {
+              channelName,
+              channelUrl,
+              channelDisplayName,
+              adUnit,
+              actorName,
+              channelOwner,
+              videoQuota
+            } = channel;
+            if (videoQuota !== -1 && !(adUnit == null ? void 0 : adUnit.uuid)) {
+              continue;
+            }
+            const hasValidAdUnit = adUnit && adUnit.uuid;
+            const status = hasValidAdUnit ? "\u2705 Yes" : "\u274C No";
+            const uuid = hasValidAdUnit || "";
+            const actions = hasValidAdUnit ? `<div class="armanet-button armanet-button-unsync" data-channel-name="${channelName}" data-channel-uuid="${uuid}">
+                 Unsync
+                </div>` : `<div class="armanet-button armanet-button-sync-single" data-channel-name="${channelName}">
+                  Sync
+                </div>`;
             newTableContent += `
               <tr>
                 <td><a href="${channelUrl}">${channelName}</a> <i>(${channelDisplayName})</i></td>
+                <td><a href="/a/${channelOwner}">${channelOwner}</a></td>
+                <td>${videoQuota === -1 ? "Unlimited" : formatBytes(videoQuota)}</td>
                 <td>${status}</td>
                 <td>${uuid}</td>
+                <td>${actions}</td>
               </tr>`;
           }
           tableBody.innerHTML = newTableContent;
+          tableBody.addEventListener("click", async (e) => {
+            const unsyncButton = e.target.closest(".armanet-button-unsync");
+            const syncSingleButton = e.target.closest(".armanet-button-sync-single");
+            if (syncSingleButton) {
+              const channelName = syncSingleButton.dataset.channelName;
+              try {
+                syncSingleButton.style.backgroundColor = "#8c8c8c";
+                syncSingleButton.style.pointerEvents = "none";
+                syncSingleButton.textContent = "Syncing...";
+                const channelSyncSingleFetch = await fetch(channelSyncSingleEndpoint, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ channelName })
+                });
+                const channelSyncSingleFetchResponse = await channelSyncSingleFetch.json();
+                syncSingleButton.textContent = "Synced";
+                const row = e.target.parentElement.parentElement;
+                const tdStatus = row.children[3];
+                tdStatus.textContent = "\u2705 Yes";
+                const tdUuid = row.children[4];
+                tdUuid.textContent = channelSyncSingleFetchResponse == null ? void 0 : channelSyncSingleFetchResponse.uuid;
+                peertubeHelpers.notifier.success(`Channel ${channelName} synced successfully`, "Channel Sync", 7e3);
+              } catch (error) {
+                console.error("Error syncing channel:", error);
+                syncSingleButton.textContent = "Sync";
+                peertubeHelpers.notifier.error(`Failed to sync channel ${channelName}`, "Channel Sync", 7e3);
+              }
+            }
+            if (unsyncButton) {
+              const channelName = unsyncButton.dataset.channelName;
+              const channelUuid = unsyncButton.dataset.channelUuid;
+              try {
+                unsyncButton.style.pointerEvents = "none";
+                unsyncButton.style.backgroundColor = "#8c8c8c";
+                unsyncButton.textContent = "Unsyncing...";
+                const channelUnsyncFetch = await fetch(channelUnsyncEndpoint, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ channelName, channelUuid })
+                });
+                const channelUnsyncFetchResponse = await channelUnsyncFetch.json();
+                unsyncButton.textContent = "Unsynced";
+                const row = e.target.parentElement.parentElement;
+                const tdStatus = row.children[3];
+                tdStatus.textContent = "\u274C No";
+                const tdUuid = row.children[4];
+                tdUuid.textContent = "";
+                peertubeHelpers.notifier.success(`Channel ${channelName} unsynced successfully`, "Channel Unsync", 7e3);
+              } catch (error) {
+                unsyncButton.textContent = "Unsync";
+                console.error("Error unsyncing channel:", error);
+                peertubeHelpers.notifier.error(`Failed to unsync channel ${channelName}`, "Channel Unsync", 7e3);
+              }
+            }
+          });
           if (syncChannelsButton && unsyncedChannels > 0) {
             const submitButton = document.querySelector('input[type="submit"]');
             const handleSyncClick = async () => {
@@ -82,8 +170,9 @@ async function handleChannelsList(registerHook, peertubeHelpers, registerSetting
         } else {
           console.error("No channel data found in storageManager.");
         }
-        const syncChannels = async (channelsListEndpoint2, channelsData) => {
-          const syncFecth = await fetch(channelsListEndpoint2, {
+        const syncChannels = async (channelsSyncEndpoint2, channelsData) => {
+          console.log("trying to sync", channelsData);
+          const syncFecth = await fetch(channelsSyncEndpoint2, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(channelsData)
