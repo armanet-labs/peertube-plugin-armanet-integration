@@ -110,7 +110,7 @@ var drawIcon = (iconType, size = 14, viewBox = 14, className = "") => {
 var AdminUI = class {
   constructor(peertubeHelpers) {
     this.helpers = peertubeHelpers;
-    this.itemsPerPage = 3;
+    this.itemsPerPage = 10;
     this.notifierDuration = 4e3;
   }
   handleSettingsVisibility(registerSettingsScript) {
