@@ -1,3 +1,6 @@
+import { APIService } from '../lib/api-service.js';
+import { AdminUI } from '../lib/admin-ui.js';
+
 function register({ registerHook, peertubeHelpers, registerSettingsScript }) {
   handleChannelsList(registerHook, peertubeHelpers, registerSettingsScript);
 }
@@ -9,108 +12,28 @@ async function handleChannelsList(
 ) {
   registerHook({
     target: 'action:admin-plugin-settings.init',
-    handler: async ({ ...rest }) => {
-      handleSettingsVisibility(registerSettingsScript);
+    handler: async () => {
+      const adminUI = new AdminUI(peertubeHelpers);
 
-      const multiSelect = document.querySelector('.armanet-multi-select');
-      const selectHeader = multiSelect.querySelector('.select-header');
-      let selectOptions = multiSelect.querySelector('.select-options');
-      const excludedChannelsInput = document.getElementById(
-        'armanet-excluded-channels-data',
-      );
-
-      selectOptions.innerHTML = `<label><input type="checkbox" value="" />Loading...</label>`;
-
-      const fillExcludedSelect = (channelsList) => {
-        let result = '';
-        for (const channel of channelsList) {
-          const { channelName, channelDisplayName } = channel;
-          result += `
-            <label>
-              <input type="checkbox" value="${channelName}" />
-              ${channelName}
-              <a href="/video-channels/${channelName}" target="_blank">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" stroke-width="2">
-                  <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6"></path>
-                  <path d="M11 13l9 -9"></path>
-                  <path d="M15 4h5v5"></path>
-                </svg>
-              </a>
-            </label>`;
-        }
-        selectOptions.innerHTML = result;
-
-        initializeState();
-      };
-
-      const initializeState = () => {
-        const initialValue = excludedChannelsInput.value;
-        const selectedValues = initialValue.split(',').map((val) => val.trim());
-
-        selectHeader.textContent = selectedValues.length
-          ? selectedValues.join(', ')
-          : 'Select Channels';
-
-        selectOptions
-          .querySelectorAll("input[type='checkbox']")
-          .forEach((checkbox) => {
-            checkbox.checked = selectedValues.includes(checkbox.value);
-          });
-      };
-
-      selectHeader.addEventListener('click', () => {
-        const isVisible = selectOptions.style.display === 'block';
-        selectOptions.style.display = isVisible ? 'none' : 'block';
-      });
-
-      const updateSelected = () => {
-        const selectedValues = Array.from(
-          selectOptions.querySelectorAll('input:checked'),
-        ).map((checkbox) => checkbox.value);
-        const selectedText = selectedValues.join(', ');
-        selectHeader.textContent = selectedText || 'Select Channels';
-        excludedChannelsInput.value = selectedText;
-
-        const event = new Event('input', { bubbles: true });
-        excludedChannelsInput.dispatchEvent(event);
-      };
-
-      selectOptions.addEventListener('change', updateSelected);
-
-      document.addEventListener('click', (event) => {
-        if (!multiSelect.contains(event.target)) {
-          selectOptions.style.display = 'none';
-        }
-      });
+      adminUI.handleSettingsVisibility(registerSettingsScript);
 
       const tableBody = document.querySelector('.armanet-channels-list tbody');
+      const paginationHolder = document.querySelector(
+        '.armanet-channels-list-pagination',
+      );
       const syncChannelsButton = document.querySelector(
         '.armanet-button-sync-channels',
       );
 
       if (!tableBody) return;
 
-      const channelsListEndpoint =
-        peertubeHelpers.getBaseRouterRoute() + '/get-channels';
-      const channelsSyncEndpoint =
-        peertubeHelpers.getBaseRouterRoute() + '/sync-channels';
-      const channelUnsyncEndpoint =
-        peertubeHelpers.getBaseRouterRoute() + '/unsync-channel';
-      const channelSyncSingleEndpoint =
-        peertubeHelpers.getBaseRouterRoute() + '/sync-single-channel';
+      const pluginBaseUrl = peertubeHelpers.getBaseRouterRoute();
+      const apiService = new APIService(pluginBaseUrl);
 
       try {
-        const chs = await fetch('/api/v1/video-channels?count=100', {
-          method: 'GET',
-        });
-        const data = await chs.json();
+        const channelsList = await apiService.fetchChannels();
 
-        const channelsListFetch = await fetch(channelsListEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-        const channelsList = await channelsListFetch.json();
+        const fillExcludedSelect = adminUI.setupChannelsDropdown();
         fillExcludedSelect(channelsList);
 
         const unsyncedChannels = channelsList.filter(
@@ -122,47 +45,9 @@ async function handleChannelsList(
         }
 
         if (channelsList) {
-          tableBody.innerHTML = '';
-          let newTableContent = '';
-
-          for (const channel of channelsList) {
-            const {
-              channelName,
-              channelUrl,
-              channelDisplayName,
-              adUnit,
-              actorName,
-              channelOwner,
-              videoQuota,
-            } = channel;
-
-            if (videoQuota !== -1 && !adUnit?.uuid) {
-              continue;
-            }
-
-            const hasValidAdUnit = adUnit && adUnit.uuid;
-            const status = hasValidAdUnit ? '✅ Yes' : '❌ No';
-            const uuid = hasValidAdUnit || '';
-
-            const actions = hasValidAdUnit
-              ? `<div class="armanet-button armanet-button-unsync" data-channel-name="${channelName}" data-channel-uuid="${uuid}">
-                 Unsync
-                </div>`
-              : `<div class="armanet-button armanet-button-sync-single" data-channel-name="${channelName}">
-                  Sync
-                </div>`;
-            newTableContent += `
-              <tr>
-                <td><a href="${channelUrl}">${channelName}</a> <i>(${channelDisplayName})</i></td>
-                <td><a href="/a/${channelOwner}">${channelOwner}</a></td>
-                <td>${videoQuota === -1 ? 'Unlimited' : formatBytes(videoQuota)}</td>
-                <td>${status}</td>
-                <td>${uuid}</td>
-                <td>${actions}</td>
-              </tr>`;
-          }
-
-          tableBody.innerHTML = newTableContent;
+          adminUI.setupChannelsTable(channelsList, tableBody);
+          adminUI.setupPaginatorTemplate(paginationHolder);
+          adminUI.setupPagination(channelsList, tableBody, paginationHolder);
 
           tableBody.addEventListener('click', async (e) => {
             const unsyncButton = e.target.closest('.armanet-button-unsync');
@@ -178,37 +63,24 @@ async function handleChannelsList(
                 syncSingleButton.style.pointerEvents = 'none';
                 syncSingleButton.textContent = 'Syncing...';
 
-                const channelSyncSingleFetch = await fetch(
-                  channelSyncSingleEndpoint,
-                  {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ channelName: channelName }),
-                  },
-                );
-                const channelSyncSingleFetchResponse =
-                  await channelSyncSingleFetch.json();
+                const response = await apiService.syncChannel(channelName);
 
                 syncSingleButton.textContent = 'Synced';
 
                 const row = e.target.parentElement.parentElement;
-                const tdStatus = row.children[3];
+                const tdStatus = row.children[4];
                 tdStatus.textContent = '✅ Yes';
-                const tdUuid = row.children[4];
-                tdUuid.textContent = channelSyncSingleFetchResponse?.uuid;
+                const tdUuid = row.children[5];
+                tdUuid.textContent = response?.uuid;
 
-                peertubeHelpers.notifier.success(
+                adminUI.renderSuccessNotification(
                   `Channel ${channelName} synced successfully`,
-                  'Channel Sync',
-                  7000,
                 );
               } catch (error) {
                 console.error('Error syncing channel:', error);
                 syncSingleButton.textContent = 'Sync';
-                peertubeHelpers.notifier.error(
+                adminUI.renderErrorNotification(
                   `Failed to sync channel ${channelName}`,
-                  'Channel Sync',
-                  7000,
                 );
               }
             }
@@ -222,37 +94,27 @@ async function handleChannelsList(
                 unsyncButton.style.backgroundColor = '#8c8c8c';
                 unsyncButton.textContent = 'Unsyncing...';
 
-                const channelUnsyncFetch = await fetch(channelUnsyncEndpoint, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    channelName: channelName,
-                    channelUuid: channelUuid,
-                  }),
-                });
-                const channelUnsyncFetchResponse =
-                  await channelUnsyncFetch.json();
+                const response = await apiService.unsyncChannel(
+                  channelName,
+                  channelUuid,
+                );
 
                 unsyncButton.textContent = 'Unsynced';
 
                 const row = e.target.parentElement.parentElement;
-                const tdStatus = row.children[3];
+                const tdStatus = row.children[4];
                 tdStatus.textContent = '❌ No';
-                const tdUuid = row.children[4];
+                const tdUuid = row.children[5];
                 tdUuid.textContent = '';
 
-                peertubeHelpers.notifier.success(
+                adminUI.renderSuccessNotification(
                   `Channel ${channelName} unsynced successfully`,
-                  'Channel Unsync',
-                  7000,
                 );
               } catch (error) {
                 unsyncButton.textContent = 'Unsync';
                 console.error('Error unsyncing channel:', error);
-                peertubeHelpers.notifier.error(
+                adminUI.renderErrorNotification(
                   `Failed to unsync channel ${channelName}`,
-                  'Channel Unsync',
-                  7000,
                 );
               }
             }
@@ -270,7 +132,7 @@ async function handleChannelsList(
               if (submitButton) {
                 submitButton.disabled = true;
               }
-              await syncChannels(channelsSyncEndpoint, channelsList);
+              await syncChannels(channelsList);
 
               syncChannelsButton.innerHTML =
                 'Sync channels with Armanet Ad Units';
@@ -287,54 +149,24 @@ async function handleChannelsList(
           console.error('No channel data found in storageManager.');
         }
 
-        const syncChannels = async (channelsSyncEndpoint, channelsData) => {
-          console.log('trying to sync', channelsData);
-          const syncFecth = await fetch(channelsSyncEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(channelsData),
-          });
+        const syncChannels = async (channelsData) => {
+          const response = await apiService.syncAllChannels(channelsData);
 
-          const syncResponse = await syncFecth.json();
-
-          if (syncResponse) {
-            peertubeHelpers.notifier.success(
-              `${syncResponse.syncCount} channels successfully synchronized`,
-              'Channels Sync',
-              7000,
+          if (response) {
+            adminUI.renderSuccessNotification(
+              `${response.syncCount} channels successfully synchronized`,
             );
 
-            if (syncResponse.errorData.length > 0) {
-              peertubeHelpers.notifier.error(
-                `Failed to sync ${syncResponse.errorData.length} channels`,
-                'Channels Sync',
-                7000,
+            if (response.errorData.length > 0) {
+              adminUI.renderErrorNotification(
+                `Failed to sync ${response.errorData.length} channels`,
               );
             }
           } else {
-            peertubeHelpers.notifier.error(
-              'could not sync channels',
-              'Channels Sync',
-              7000,
-            );
+            adminUI.renderErrorNotification(`Could not sync channels`);
             console.error('could not sync channels');
           }
         };
-
-        function formatBytes(bytes, decimals = 2) {
-          if (bytes === -1) return 'Unlimited';
-          if (bytes === 0) return '0 Bytes';
-
-          const k = 1024;
-          const dm = decimals < 0 ? 0 : decimals;
-          const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-
-          const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-          return (
-            parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
-          );
-        }
       } catch (err) {
         console.error('error attempting to fetch channels', err);
       }
@@ -343,98 +175,3 @@ async function handleChannelsList(
 }
 
 export { register };
-
-function handleSettingsVisibility(registerSettingsScript) {
-  registerSettingsScript({
-    isSettingHidden: (options) => {
-      if (
-        options.setting.name === 'armanet-channels-list-title' &&
-        options.formValues['armanet-api-key'] === ''
-      ) {
-        return true;
-      }
-      if (
-        options.setting.name === 'armanet-channels-list-update-button' &&
-        options.formValues['armanet-api-key'] === ''
-      ) {
-        return true;
-      }
-      if (
-        options.setting.name === 'armanet-channels-list' &&
-        options.formValues['armanet-api-key'] === ''
-      ) {
-        return true;
-      }
-
-      if (
-        options.setting.name === 'armanet-preroll-adunit' &&
-        options.formValues['armanet-preroll-enabled'] === false
-      ) {
-        return true;
-      }
-
-      if (
-        options.setting.name === 'armanet-midroll-adunit' &&
-        options.formValues['armanet-midroll-enabled'] === false
-      ) {
-        return true;
-      }
-      if (
-        options.setting.name === 'armanet-midroll-min-minutes' &&
-        options.formValues['armanet-midroll-enabled'] === false
-      ) {
-        return true;
-      }
-      if (
-        options.setting.name === 'armanet-midroll-offset' &&
-        options.formValues['armanet-midroll-enabled'] === false
-      ) {
-        return true;
-      }
-
-      if (
-        options.setting.name === 'armanet-postroll-adunit' &&
-        options.formValues['armanet-postroll-enabled'] === false
-      ) {
-        return true;
-      }
-      if (
-        options.setting.name === 'armanet-postroll-min-minutes' &&
-        options.formValues['armanet-postroll-enabled'] === false
-      ) {
-        return true;
-      }
-
-      if (
-        options.setting.name === 'armanet-companion-video-adunit' &&
-        options.formValues['armanet-companion-video-enabled'] === false
-      ) {
-        return true;
-      }
-      if (
-        options.setting.name === 'armanet-companion-sidebar-adunit' &&
-        options.formValues['armanet-companion-sidebar-enabled'] === false
-      ) {
-        return true;
-      }
-
-      if (
-        options.setting.name === 'armanet-message-skip-countdown' &&
-        options.formValues['armanet-skip-time'] == 0
-      ) {
-        return true;
-      }
-      if (
-        options.setting.name === 'armanet-message-skip' &&
-        options.formValues['armanet-skip-time'] == 0
-      ) {
-        return true;
-      }
-      if (options.setting.name === 'armanet-excluded-channels-data') {
-        return true;
-      }
-
-      return false;
-    },
-  });
-}

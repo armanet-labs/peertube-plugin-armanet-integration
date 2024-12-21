@@ -129,17 +129,18 @@ Original @ https://github.com/theonion/videojs-vast-plugin (commit bf6ce85fa7632
 }
 
 .armanet-table thead th {
-  background-color: #f2f2f2;
-  color: #333;
   font-weight: bold;
 }
 
+.armanet-table tbody tr {
+  background-color: inherit;
+}
 .armanet-table tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: var(--mainColorLighter, var(--greyBackgroundColor, inherit));
 }
 
 .armanet-table tbody tr:hover {
-  background-color: #f1f1f1;
+  background-color: var(--mainHoverColor, var(--bg-secondary-400, inherit));
 }
 
 .armanet-table th, .armanet-table td {
@@ -153,14 +154,169 @@ Original @ https://github.com/theonion/videojs-vast-plugin (commit bf6ce85fa7632
 .armanet-button {
   display: inline-block;
   padding: 4px 13px;
-  background-color: var(--mainColor);
-  color: #fff;
+  background-color: var(--primary, var(--mainColor, hsl(24, 90%, 45%)));
   font-size: 15px;
   font-weight: 600;
   line-height: 23px;
   text-align: center;
   cursor: pointer;
   border-radius: 3px;
+}
+
+.armanet-p-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.armanet-p-paginator {
+  background-color: var(--bg) !important;
+  position: relative;
+  border: none;
+  border-top: 1px solid !important;
+  border-color: var(--bg-secondary-400) !important;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.p-paginator-page,
+.p-paginator-next,
+.p-paginator-last,
+.p-paginator-first,
+.p-paginator-prev,
+.p-paginator-current {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+}
+
+.armanet-p-paginator-current {
+  color: var(--fg-300);
+  overflow: visible;
+}
+
+.armanet-p-paginator .p-paginator-first .p-paginator-icon,
+.armanet-p-paginator .p-paginator-prev .p-paginator-icon,
+.armanet-p-paginator .p-paginator-next .p-paginator-icon,
+.armanet-p-paginator .p-paginator-last .p-paginator-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.armanet-p-paginator .p-paginator-first.p-paginator-prev,
+.armanet-p-paginator .p-paginator-prev.p-paginator-prev,
+.armanet-p-paginator .p-paginator-next.p-paginator-prev,
+.armanet-p-paginator .p-paginator-last.p-paginator-prev {
+  margin-inline-end: .625rem;
+}
+
+body .armanet-p-paginator .p-paginator-first,
+body .armanet-p-paginator .p-paginator-prev,
+body .armanet-p-paginator .p-paginator-next,
+body .armanet-p-paginator .p-paginator-last {
+  color: var(--fg-300);
+  height: 2.286em;
+  min-width: 2.286em;
+  border: 0 none;
+  line-height: 2.286em;
+  padding: 0;
+  margin: 0;
+  vertical-align: top;
+  transition: box-shadow .2s;
+  border-radius: 0;
+}
+
+.armanet-p-paginator .p-paginator-first {
+  margin-left: auto !important;
+}
+
+.armanet-p-paginator .p-paginator-last {
+  margin-right: auto !important;
+}
+
+.armanet-p-paginator .p-paginator-first,
+.armanet-p-paginator .p-paginator-prev,
+.armanet-p-paginator .p-paginator-next,
+.armanet-p-paginator .p-paginator-last {
+  padding: 5px 2px;
+  height: 100%;
+  outline: none;
+  color: var(--fg);
+}
+
+.armanet-p-paginator .p-paginator-first:disabled,
+.armanet-p-paginator .p-paginator-prev:disabled,
+.armanet-p-paginator .p-paginator-next:disabled,
+.armanet-p-paginator .p-paginator-last:disabled {
+  opacity: .5;
+}
+
+body .armanet-p-paginator .p-paginator-pages {
+  vertical-align: top;
+  display: inline-block;
+  padding: 0;
+}
+
+.armanet-p-paginator .p-paginator-pages {
+  height: auto!important;
+}
+
+body .armanet-p-paginator .p-paginator-pages .p-paginator-page {
+  color: var(--fg-300);
+  height: 2.286em;
+  min-width: 2.286em;
+  border: 0 none;
+  line-height: 2.286em;
+  padding: 0;
+  margin: 0;
+  vertical-align: top;
+  transition: box-shadow .2s;
+  border-radius: 0;
+}
+
+.armanet-p-paginator .p-paginator-pages .p-paginator-page {
+  color: var(--fg)!important;
+  font-weight: 600!important;
+  margin: 0 5px!important;
+  outline: 0!important;
+  border-radius: 3px!important;
+  padding: 5px 2px!important;
+  height: auto!important;
+  line-height: initial!important;
+}
+
+.armanet-p-paginator .p-paginator-pages .p-paginator-page.p-highlight,
+.armanet-p-paginator .p-paginator-pages .p-paginator-page.p-highlight:hover,
+.armanet-p-paginator .p-paginator-pages .p-paginator-page.p-highlight:active,
+.armanet-p-paginator .p-paginator-pages .p-paginator-page.p-highlight:focus {
+  color: var(--fg)!important;
+  background-color: var(--bg-secondary-500)!important;
+}
+
+.armanet-p-paginator .p-dropdown,
+.armanet-p-paginator .p-dropdown-trigger {
+  color: var(--fg);
+  background-color: var(--bg);
+}
+
+.armanet-p-paginator .p-dropdown,
+.armanet-p-paginator p-dropdown .p-dropdown {
+  padding-inline-start: .5rem;
+  align-items: center;
+}
+
+body .p-paginator .p-dropdown .p-dropdown-trigger,
+body .p-paginator .p-dropdown .p-dropdown-label {
+  color: var(--fg-300);
 }
 
 /* COMPANION STYLES */
@@ -172,6 +328,7 @@ Original @ https://github.com/theonion/videojs-vast-plugin (commit bf6ce85fa7632
   max-width: 100% !important;
 }
 
+/* MULTI SELECT */
 .armanet-multi-select {
   display: inline-block;
   position: relative;

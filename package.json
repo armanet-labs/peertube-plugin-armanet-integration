@@ -33,7 +33,7 @@
     {
       "script": "dist/admin-plugin-client-plugin.js",
       "scopes": [
-        "common"
+        "admin-plugin"
       ]
     }
   ],
