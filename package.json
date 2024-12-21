@@ -1,7 +1,7 @@
 {
   "name": "peertube-plugin-armanet-integration",
   "description": "Armanet is modern advertising for the 2A industry to drive immediate, measurable, consumer demand.",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "license": "BSD-3-Clause",
   "author": "Armanet",
   "bugs": "https://github.com/armanet-labs/peertube-plugin-armanet-integration/issues",
