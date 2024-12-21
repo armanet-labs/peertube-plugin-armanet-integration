@@ -37,56 +37,16 @@ async function register({
   });
 
   router.use('/get-channels', async (req, res) => {
-    const channels = req.body.data;
-
-    const models = await peertubeHelpers.database.query(`
-      SELECT
-        "videoChannel"."name" as "channelName",
-        "user"."videoQuota" as "videoQuota",
-        "user"."videoQuotaDaily" as "videoQuotaDaily",
-        "user"."username" as "channelOwner",
-        "actor"."preferredUsername" as "actorName"
-      FROM "videoChannel"
-      JOIN "account" ON "videoChannel"."accountId" = "account"."id"
-      JOIN "actor" ON "videoChannel"."actorId" = "actor"."id"
-      JOIN "user" ON "account"."userId" = "user"."id"
-    `);
-
-    const quotaData = models[0];
-    const channelData = [];
-
-    for (const channel of channels) {
-      const channelName = channel.name;
-      const channelUrl = channel.url;
-      const channelDisplayName = channel.displayName;
-      const storedAdUnit = await getStorageData(channelName);
-
-      const adUnit = storedAdUnit && storedAdUnit.uuid ? storedAdUnit : null;
-
-      const channelInfo = quotaData.find((m) => m.actorName === channelName);
-      const videoQuota = channelInfo ? Number(channelInfo.videoQuota) : null;
-
-      // Return only channels with unlimited video quota or with an ad unit
-      if (videoQuota !== -1 && adUnit === null) {
-        continue;
-      }
-
-      channelData.push({
-        channelName,
-        channelUrl,
-        channelDisplayName,
-        adUnit,
-
-        videoQuota: channelInfo ? Number(channelInfo.videoQuota) : null,
-        videoQuotaDaily: channelInfo
-          ? Number(channelInfo.videoQuotaDaily)
-          : null,
-        channelOwner: channelInfo ? channelInfo.channelOwner : 'N/A',
-        actorName: channelInfo ? channelInfo.actorName : 'N/A',
+    try {
+      const channels = await getChannelsFromDB();
+      return res.status(200).send(channels);
+    } catch (error) {
+      loggerArmanet.info('[get-channels] Error getting channels', {
+        error: error,
+        tags: [loggerTag],
       });
+      return res.status(500).send({ error: 'Error getting channels' });
     }
-
-    return res.status(200).send(channelData);
   });
 
   router.use('/sync-channels', async (req, res) => {
@@ -433,6 +393,69 @@ async function register({
 
   const setStorageData = async (name, data) => {
     await storageManager.storeData(getStorageKey(name), data);
+  };
+
+  const getChannelsFromDB = async () => {
+    const models = await peertubeHelpers.database.query(`
+      SELECT
+        "videoChannel"."name" as "channelName",
+        "videoChannel"."createdAt" as "createdAt",
+        "user"."videoQuota" as "videoQuota",
+        "user"."username" as "channelOwner",
+        "actor"."preferredUsername" as "actorName",
+        "actor"."url" as "channelUrl",
+        COALESCE(
+          (SELECT
+            ("storage"#>>ARRAY['ch_' || "actor"."preferredUsername"])::json
+            FROM "plugin"
+            WHERE "name" = 'armanet-integration'
+            AND "type" = 1
+            LIMIT 1
+          ),
+          '{}'::json
+        ) as "pluginStorage"
+      FROM "videoChannel"
+      JOIN "account" ON "videoChannel"."accountId" = "account"."id"
+      JOIN "actor" ON "videoChannel"."actorId" = "actor"."id"
+      JOIN "user" ON "account"."userId" = "user"."id"
+      WHERE "user"."videoQuota" = '-1'
+      OR (SELECT
+        ("storage"#>>ARRAY['ch_' || "actor"."preferredUsername", 'uuid'])
+        FROM "plugin"
+        WHERE "name" = 'armanet-integration'
+        AND "type" = 1
+        LIMIT 1) IS NOT NULL
+      ORDER BY "videoChannel"."createdAt" DESC
+    `);
+
+    const quotaData = models[0];
+    const channelData = [];
+
+    for (const channel of quotaData) {
+      const channelName = channel.actorName;
+      const channelUrl = channel.channelUrl;
+      const channelDisplayName = channel.channelName;
+      const videoQuota = Number(channel.videoQuota) || null;
+      const channelOwner = channel.channelOwner || 'Unknown';
+      const adUnit = channel.pluginStorage?.uuid ? channel.pluginStorage : null;
+
+      // Return only channels with unlimited video quota or with an ad unit
+      if (videoQuota !== -1 && adUnit === null) {
+        continue;
+      }
+
+      channelData.push({
+        channelName,
+        channelUrl,
+        channelDisplayName,
+        adUnit,
+        videoQuota,
+        channelOwner,
+        itemNumber: channelData.length + 1,
+      });
+    }
+
+    return channelData;
   };
 }
 

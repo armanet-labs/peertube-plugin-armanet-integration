@@ -1,3 +1,8 @@
+import {
+  formatBytes,
+  drawIcon,
+} from '../lib/shared.js';
+
 function register({ registerHook, peertubeHelpers, registerSettingsScript }) {
   handleChannelsList(registerHook, peertubeHelpers, registerSettingsScript);
 }
@@ -9,108 +14,30 @@ async function handleChannelsList(
 ) {
   registerHook({
     target: 'action:admin-plugin-settings.init',
-    handler: async ({ ...rest }) => {
+    handler: async () => {
       handleSettingsVisibility(registerSettingsScript);
 
-      const multiSelect = document.querySelector('.armanet-multi-select');
-      const selectHeader = multiSelect.querySelector('.select-header');
-      let selectOptions = multiSelect.querySelector('.select-options');
-      const excludedChannelsInput = document.getElementById(
-        'armanet-excluded-channels-data',
-      );
-
-      selectOptions.innerHTML = `<label><input type="checkbox" value="" />Loading...</label>`;
-
-      const fillExcludedSelect = (channelsList) => {
-        let result = '';
-        for (const channel of channelsList) {
-          const { channelName, channelDisplayName } = channel;
-          result += `
-            <label>
-              <input type="checkbox" value="${channelName}" />
-              ${channelName}
-              <a href="/video-channels/${channelName}" target="_blank">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" stroke-width="2">
-                  <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6"></path>
-                  <path d="M11 13l9 -9"></path>
-                  <path d="M15 4h5v5"></path>
-                </svg>
-              </a>
-            </label>`;
-        }
-        selectOptions.innerHTML = result;
-
-        initializeState();
-      };
-
-      const initializeState = () => {
-        const initialValue = excludedChannelsInput.value;
-        const selectedValues = initialValue.split(',').map((val) => val.trim());
-
-        selectHeader.textContent = selectedValues.length
-          ? selectedValues.join(', ')
-          : 'Select Channels';
-
-        selectOptions
-          .querySelectorAll("input[type='checkbox']")
-          .forEach((checkbox) => {
-            checkbox.checked = selectedValues.includes(checkbox.value);
-          });
-      };
-
-      selectHeader.addEventListener('click', () => {
-        const isVisible = selectOptions.style.display === 'block';
-        selectOptions.style.display = isVisible ? 'none' : 'block';
-      });
-
-      const updateSelected = () => {
-        const selectedValues = Array.from(
-          selectOptions.querySelectorAll('input:checked'),
-        ).map((checkbox) => checkbox.value);
-        const selectedText = selectedValues.join(', ');
-        selectHeader.textContent = selectedText || 'Select Channels';
-        excludedChannelsInput.value = selectedText;
-
-        const event = new Event('input', { bubbles: true });
-        excludedChannelsInput.dispatchEvent(event);
-      };
-
-      selectOptions.addEventListener('change', updateSelected);
-
-      document.addEventListener('click', (event) => {
-        if (!multiSelect.contains(event.target)) {
-          selectOptions.style.display = 'none';
-        }
-      });
+      const fillExcludedSelect = handleChannelsDropdown();
 
       const tableBody = document.querySelector('.armanet-channels-list tbody');
-      const syncChannelsButton = document.querySelector(
-        '.armanet-button-sync-channels',
-      );
+      const paginationHolder = document.querySelector('.armanet-channels-list-pagination');
+      const syncChannelsButton = document.querySelector('.armanet-button-sync-channels');
 
       if (!tableBody) return;
 
-      const channelsListEndpoint =
-        peertubeHelpers.getBaseRouterRoute() + '/get-channels';
-      const channelsSyncEndpoint =
-        peertubeHelpers.getBaseRouterRoute() + '/sync-channels';
-      const channelUnsyncEndpoint =
-        peertubeHelpers.getBaseRouterRoute() + '/unsync-channel';
-      const channelSyncSingleEndpoint =
-        peertubeHelpers.getBaseRouterRoute() + '/sync-single-channel';
+      const pluginBaseUrl = peertubeHelpers.getBaseRouterRoute();
+      const channelsListEndpoint = pluginBaseUrl + '/get-channels';
+      const channelsSyncEndpoint = pluginBaseUrl + '/sync-channels';
+      const channelUnsyncEndpoint = pluginBaseUrl + '/unsync-channel';
+      const channelSyncSingleEndpoint = pluginBaseUrl + '/sync-single-channel';
 
       try {
-        const chs = await fetch('/api/v1/video-channels?count=100', {
-          method: 'GET',
-        });
-        const data = await chs.json();
-
         const channelsListFetch = await fetch(channelsListEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
         });
         const channelsList = await channelsListFetch.json();
+        console.log('xxxxchannelsList', channelsList);
         fillExcludedSelect(channelsList);
 
         const unsyncedChannels = channelsList.filter(
@@ -127,13 +54,13 @@ async function handleChannelsList(
 
           for (const channel of channelsList) {
             const {
+              itemNumber,
               channelName,
               channelUrl,
               channelDisplayName,
               adUnit,
-              actorName,
-              channelOwner,
               videoQuota,
+              channelOwner,
             } = channel;
 
             if (videoQuota !== -1 && !adUnit?.uuid) {
@@ -153,7 +80,8 @@ async function handleChannelsList(
                 </div>`;
             newTableContent += `
               <tr>
-                <td><a href="${channelUrl}">${channelName}</a> <i>(${channelDisplayName})</i></td>
+                <td>${itemNumber}</td>
+                <td><a href="${channelUrl}" title="Display Name: ${channelDisplayName}">${channelName}</a></td>
                 <td><a href="/a/${channelOwner}">${channelOwner}</a></td>
                 <td>${videoQuota === -1 ? 'Unlimited' : formatBytes(videoQuota)}</td>
                 <td>${status}</td>
@@ -163,6 +91,37 @@ async function handleChannelsList(
           }
 
           tableBody.innerHTML = newTableContent;
+
+          paginationHolder.innerHTML = `
+            <div class="p-paginator-bottom p-paginator p-component armanet-p-paginator">
+
+              <span class="p-paginator-current armanet-p-paginator-current">
+                0 - 0 of 0 x
+              </span>
+
+              <button type="button" class="p-element p-paginator-first p-paginator-element p-link">
+                <div class="p-element p-icon-wrapper">${drawIcon('first', 14, 14, 'p-paginator-icon')}</div>
+              </button>
+
+              <button type="button" class="p-element p-paginator-prev p-paginator-element p-link">
+                <div class="p-element p-icon-wrapper">${drawIcon('prev', 14, 14, 'p-paginator-icon')}</div>
+              </button>
+
+              <span class="p-paginator-pages">
+                <button type="button" class="p-element p-paginator-page p-paginator-element p-link p-highlight"> 1 </button>
+              </span>
+
+              <button type="button" class="p-element p-paginator-next p-paginator-element p-link">
+                <div class="p-element p-icon-wrapper">${drawIcon('next', 14, 14, 'p-paginator-icon')}</div>
+              </button>
+
+              <button type="button" class="p-element p-paginator-last p-paginator-element p-link">
+                <div class="p-element p-icon-wrapper">${drawIcon('last', 14, 14, 'p-paginator-icon')}</div>
+              </button>
+            </div>
+          `;
+
+          handlePagination(channelsList, tableBody, paginationHolder, 3);
 
           tableBody.addEventListener('click', async (e) => {
             const unsyncButton = e.target.closest('.armanet-button-unsync');
@@ -320,21 +279,6 @@ async function handleChannelsList(
             console.error('could not sync channels');
           }
         };
-
-        function formatBytes(bytes, decimals = 2) {
-          if (bytes === -1) return 'Unlimited';
-          if (bytes === 0) return '0 Bytes';
-
-          const k = 1024;
-          const dm = decimals < 0 ? 0 : decimals;
-          const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-
-          const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-          return (
-            parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
-          );
-        }
       } catch (err) {
         console.error('error attempting to fetch channels', err);
       }
@@ -437,4 +381,137 @@ function handleSettingsVisibility(registerSettingsScript) {
       return false;
     },
   });
+}
+
+function handleChannelsDropdown() {
+  const multiSelect = document.querySelector('.armanet-multi-select');
+  const selectHeader = multiSelect.querySelector('.select-header');
+  let selectOptions = multiSelect.querySelector('.select-options');
+  const excludedChannelsInput = document.getElementById('armanet-excluded-channels-data');
+
+  selectOptions.innerHTML = `<label><input type="checkbox" value="" />Loading...</label>`;
+
+  const initializeState = () => {
+    const initialValue = excludedChannelsInput.value;
+    const selectedValues = initialValue.split(',').map((val) => val.trim());
+
+    selectHeader.textContent = selectedValues.length
+      ? selectedValues.join(', ')
+      : 'Select Channels';
+
+    selectOptions
+      .querySelectorAll("input[type='checkbox']")
+      .forEach((checkbox) => {
+        checkbox.checked = selectedValues.includes(checkbox.value);
+      });
+  };
+
+  selectHeader.addEventListener('click', () => {
+    const isVisible = selectOptions.style.display === 'block';
+    selectOptions.style.display = isVisible ? 'none' : 'block';
+  });
+
+  selectOptions.addEventListener('change', () => {
+    const selectedValues = Array.from(
+      selectOptions.querySelectorAll('input:checked'),
+    ).map((checkbox) => checkbox.value);
+    const selectedText = selectedValues.join(', ');
+    selectHeader.textContent = selectedText || 'Select Channels';
+    excludedChannelsInput.value = selectedText;
+
+    const event = new Event('input', { bubbles: true });
+    excludedChannelsInput.dispatchEvent(event);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!multiSelect.contains(event.target)) {
+      selectOptions.style.display = 'none';
+    }
+  });
+
+  return (channelsList) => {
+    let result = '';
+    for (const channel of channelsList) {
+      const { channelName, channelDisplayName } = channel;
+      result += `
+        <label>
+          <input type="checkbox" value="${channelName}" />
+          ${channelName}
+          <a href="/video-channels/${channelName}" target="_blank" title="View Channel">
+            ${drawIcon('external', 16, 24)}
+          </a>
+        </label>`;
+    }
+    selectOptions.innerHTML = result;
+
+    initializeState();
+  };
+}
+
+function handlePagination(channelsList, tableBody, paginationHolder, itemsPerPage = 3) {
+  const totalItems = channelsList.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  let currentPage = 1;
+
+  function showPage(page) {
+    const rows = tableBody.querySelectorAll('tr');
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+
+    rows.forEach((row, index) => {
+      row.style.display = (index >= start && index < end) ? '' : 'none';
+    });
+
+    // Update buttons state
+    const firstButton = paginationHolder.querySelector('.p-paginator-first');
+    const prevButton = paginationHolder.querySelector('.p-paginator-prev');
+    const nextButton = paginationHolder.querySelector('.p-paginator-next');
+    const lastButton = paginationHolder.querySelector('.p-paginator-last');
+
+    firstButton.disabled = page === 1;
+    prevButton.disabled = page === 1;
+    nextButton.disabled = page === totalPages;
+    lastButton.disabled = page === totalPages;
+
+    // Update numeric pages
+    const pagesContainer = paginationHolder.querySelector('.p-paginator-pages');
+    pagesContainer.innerHTML = '';
+
+    for (let i = 1; i <= totalPages; i++) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `p-ripple p-element p-paginator-page p-paginator-element p-link${i === page ? ' p-highlight' : ''}`;
+      button.textContent = i;
+      button.addEventListener('click', () => {
+        currentPage = i;
+        showPage(currentPage);
+      });
+      pagesContainer.appendChild(button);
+    }
+
+    // Update counter
+    const currentCounter = paginationHolder.querySelector('.p-paginator-current');
+    const startCount = (page - 1) * itemsPerPage + 1;
+    const endCount = Math.min(page * itemsPerPage, totalItems);
+    currentCounter.textContent = `${startCount} - ${endCount} of ${totalItems}`;
+  }
+
+  // Event listeners
+  paginationHolder.querySelectorAll('button').forEach(button => {
+    button.addEventListener('click', (e) => {
+      if (button.classList.contains('p-paginator-first')) {
+        currentPage = 1;
+      } else if (button.classList.contains('p-paginator-prev')) {
+        currentPage = Math.max(1, currentPage - 1);
+      } else if (button.classList.contains('p-paginator-next')) {
+        currentPage = Math.min(totalPages, currentPage + 1);
+      } else if (button.classList.contains('p-paginator-last')) {
+        currentPage = totalPages;
+      }
+      showPage(currentPage);
+    });
+  });
+
+  // Show first page
+  showPage(1);
 }
