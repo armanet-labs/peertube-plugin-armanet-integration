@@ -1,228 +1,3 @@
-/* GREYHIVE TEST STYLES */
-body.greyhive {
-  --primary: #bba777;
-  --mainColor: #bba777;
-
-  --mainColorLighter: #52525b;
-  --mainColorLightest: #d4d4d8;
-  --mainColorVeryLight: #f4f4f5;
-  --mainHoverColor: #CEBC8E;
-  --mainBackgroundHoverColor: #e9ecef;
-
-  --bg: #121212;
-  --mainBackgroundColor: #121212;
-
-  --fg: #bba777;
-  --mainForegroundColor: #bba777;
-
-  --greyForegroundColor: #52525b;
-
-  --bg-secondary: #e4e4e7;
-  --greyBackgroundColor: #e4e4e7;
-
-  --greySecondaryBackgroundColor: #EFEFEF;
-
-  --menu-bg: #27272a;
-  --menuBackgroundColor: #27272a;
-
-  --menu-fg: #f9f9f9;
-  --menuForegroundColor: #f9f9f9;
-
-  --submenuBackgroundColor: #27272a;
-  --channelBackgroundColor: #333333;
-
-  --input-fg: #f9f9f9;
-  --inputForegroundColor: #f9f9f9;
-
-  --input-bg: #1b1b1b;
-  --inputBackgroundColor: #1b1b1b;
-
-  --input-placeholder: #797676;
-  --inputPlaceholderColor: #797676;
-
-  --input-border-color: #333;
-  --inputBorderColor: #333;
-
-  --textarea-fg: #f9f9f9;
-  --textareaForegroundColor: #f9f9f9;
-
-  --textarea-bg: #1b1b1b;
-  --textareaBackgroundColor: #1b1b1b;
-
-  --markdownTextareaBackgroundColor: #1b1b1b;
-  --actionButtonColor: #585858;
-
-  --support-btn-bg: transparent;
-  --supportButtonBackgroundColor: transparent;
-
-  --support-btn-fg: var(--actionButtonColor);
-  --supportButtonColor: var(--actionButtonColor);
-
-  --supportButtonHeartColor: #e83e8c;
-  --activatedActionButtonColor: #212529;
-  --horizontalMarginContent: 30px;
-  --videosHorizontalMarginContent: 6vw;
-  --mainColWidth: calc(100vw - 240px);
-  --bs-modal-border-color: #1b1b1b;
-  --bs-border-color: #333;
-  --bs-alert-color: #1b1b1b !important;
-  --bs-alert-link-color:  #1b1b1b !important;
-}
-
-body.greyhive {
-  font-family: 'Lato', sans-serif;
-  font-weight: 500;
-  color: #f9f9f9;
-  font-size: 1rem;
-  text-align: start;
-}
-
-a {
-  color: rgba(var(--bs-link-color-rgb),var(--bs-link-opacity, 1));
-}
-
-body.greyhive .filters-toggle {
-  border: 2px solid var(--mainColor);
-}
-
-body.greyhive .icon-logo {
-  background-image: url(https://greyhive.com/client/assets/images/logo.svg);
-}
-
-body.greyhive .logged-in-block {
-  margin-bottom: 20px;
-  background-color: var(--menuBackgroundColor) !important;
-}
-
-body.greyhive .menu-link:hover {
-  background-color: #222 !important;
-}
-
-body.greyhive .menu-link.active {
-  background-color: #222 !important;
-}
-
-body.greyhive .peertube-title .instance-name {
-  display: none;
-}
-
-body.greyhive .peertube-title .icon.icon-logo {
-  width: 120px !important;
-  height: 29px !important;
-}
-
-body.greyhive .video-actions .action-button:hover {
-  opacity: 1;
-  color: var(--mainColor);
-}
-
-body.greyhive .video-thumbnail {
-  border-radius: .25rem;
-}
-
-/* General Styling Changes */
-body.greyhive .peertube-button{
-background-color: var(--mainColor);
-}
-body.greyhive .logged-in-menu{
-border-top: none !important;
-}
-body.greyhive .checkbox-wrapper{
-background-color: transparent;
-}
-body.greyhive .checkbox-wrapper span{
-color: #18181b;
-}
-body.greyhive .ng-optgroup,
-body.greyhive .ng-option,
-body.greyhive .ng-option-selected,
-body.greyhive .ng-option-selected.ng-option-marked{
-background-color: white !important;
-color: #18181b
-}
-body.greyhive .ng-value-container .ng-value{
-background-color: transparent !important;
-}
-body.greyhive .alert.pt-alert-primary{
-background-color: #bba777;
-border-color: #bba777;
-color: #18181b;
-}
-body.greyhive .alert{
-background-color: #bba777;
-border-color: #bba777;
-}
-body.greyhive .alert .alert-link{
-color: #1b1b1b;
-}
-body.greyhive .broadcast-message svg{
-color: #1b1b1b !important;
-}
-
-/* Login Page Changes */
-my-login > .margin-content .alert{
-display: none;
-}
-my-login my-instance-banner{
-display: none;
-}
-my-login .instance-short-description{
-display: none;
-}
-my-login .margin-content .wrapper{
-flex-direction: column;
-align-items: center;
-}
-
-/* Account Portal Changes */
-a[href*="/my-account/import-export"],  a[href*="/my-account/applications"], a[href*="/my-account/blocklist/accounts"], a[href*="/my-account/blocklist/servers"], a[href*="/my-account/abuses"]{
-    display:none
-}
-body.greyhive .ng-star-inserted div > li > button
-my-channels-setup-message .channels-setup-message{
-background-color: transparent !important;
-}
-
-/* User Setup Pages */
-body.greyhive .title-page-v2{
-background-color: transparent !important;
-}
-body.greyhive .register-content header{
-background-color: transparent !important;
-}
-my-register-step-about div:nth-child(3){
-display: none;
-}
-my-register-step-about .callout{
-display: none !important;
-}
-my-register-step-about .banner{
-display: none;
-}
-my-signup-step-title + my-instance-about-accordion .instance-short-description{
-display: none !important;
-}
-body.greyhive .step-buttons{
-justify-content: center;
-}
-body.greyhive .step-buttons .skip-step{
-margin-inline-start: revert !important;
-}
-
-/* My Library */
-body.greyhive input, body.greyhive #next-ownership-username_list{
-background-color: #27272a;
-border: none !important;
-}
-
-body.greyhive #next-ownership-username_list{
-margin-bottom: 0;
-}
-
-body.greyhive #next-ownership-username_list li{
-color: white;
-}
-
 /* VAST PLUGIN STYLES */
 .vjs-ad-playing.vjs-ad-playing .vjs-progress-control {
   pointer-events:none
@@ -354,30 +129,17 @@ Original @ https://github.com/theonion/videojs-vast-plugin (commit bf6ce85fa7632
 }
 
 .armanet-table thead th {
-  /* background-color: #f2f2f2; */
-  /* color: #333; */
   font-weight: bold;
 }
 
 .armanet-table tbody tr {
   background-color: inherit;
-  /* background-color: #f9f9f9; */
-  /* background-color: var(--greyBackgroundColor); */
 }
 .armanet-table tbody tr:nth-child(even) {
-  /* background-color: #f9f9f9; */
-  /* background-color: var(--greySecondaryBackgroundColor); */
-  /* background-color: var(--mainColorLighter); */
-  /* background-color: var(--greyBackgroundColor); */
-  /* background-color: var(--bg-secondary, var(--greyBackgroundColor, inherit)); */
   background-color: var(--mainColorLighter, var(--greyBackgroundColor, inherit));
 }
 
 .armanet-table tbody tr:hover {
-  /* background-color: #f1f1f1; */
-  /* background-color: var(--textareaForegroundColor); */
-  /* background-color: var(--mainHoverColor); */
-  /* background-color: var(--bg-secondary-400, var(--mainHoverColor, inherit)); */
   background-color: var(--mainHoverColor, var(--bg-secondary-400, inherit));
 }
 
@@ -393,9 +155,6 @@ Original @ https://github.com/theonion/videojs-vast-plugin (commit bf6ce85fa7632
   display: inline-block;
   padding: 4px 13px;
   background-color: var(--primary, var(--mainColor, hsl(24, 90%, 45%)));
-  /* color: #fff; */
-  /* color: var(--on-primary, var(--mainForegroundColor, #000)); */
-  /* color: var(--on-primary, #000); */
   font-size: 15px;
   font-weight: 600;
   line-height: 23px;
@@ -412,7 +171,6 @@ Original @ https://github.com/theonion/videojs-vast-plugin (commit bf6ce85fa7632
 }
 
 .armanet-p-paginator {
-  /* background-color: inherit !important; */
   background-color: var(--bg) !important;
   position: relative;
   border: none;
@@ -445,10 +203,6 @@ Original @ https://github.com/theonion/videojs-vast-plugin (commit bf6ce85fa7632
   color: var(--fg-300);
   overflow: visible;
 }
-
-
-
-
 
 .armanet-p-paginator .p-paginator-first .p-paginator-icon,
 .armanet-p-paginator .p-paginator-prev .p-paginator-icon,
