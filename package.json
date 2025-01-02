@@ -60,6 +60,12 @@
     "esbuild": "^0.14.36",
     "esbuild-plugin-external-global": "^1.0.1",
     "global": "^4.4.0",
-    "prettier": "3.3.3"
+    "prettier": "3.3.3",
+    "video.js": "^7.21.6"
+  },
+  "dependencies": {
+    "@dailymotion/vast-client": "^4.0.1",
+    "videojs-contrib-ads": "^6.9.0",
+    "videojsx-vast-plugin": "github:philipwatson/videojsx-vast-plugin"
   }
 }
